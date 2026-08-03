@@ -11,14 +11,18 @@ const db = await mysql.createConnection({
   database: process.env.DB_NAME,
 });
 
-try {
-  const [results, fields] = await db.query("SELECT * FROM `Locations`");
+export async function testConnection() {
+  try {
+    const [results, fields] = await db.query("SELECT * FROM `Locations`");
 
-  console.log(results); // results contains rows returned by server
-  console.log(fields); // fields contains extra meta data about results, if available
-} catch (err) {
-  console.log(err);
+    console.log(results); // results contains rows returned by server
+    console.log(fields); // fields contains extra meta data about results, if available
+    return results;
+  } catch (err) {
+    console.log(err);
+    return [];
+  }
 }
 
 // close the connection
-await db.end();
+// await db.end();
