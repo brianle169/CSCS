@@ -1,9 +1,24 @@
 // DB file to connect and communicate with the database
-const mysql = require("mysql2");
+import dotenv from "dotenv";
+import mysql from "mysql2/promise";
 
-const db = mysql.createConnection({
-  //   host: "localhost",
-  //   user: "your_username",
-  //   password: "your_password",
-  //   database: "your_database"
+dotenv.config();
+
+const db = await mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
+
+try {
+  const [results, fields] = await db.query("SELECT * FROM `Locations`");
+
+  console.log(results); // results contains rows returned by server
+  console.log(fields); // fields contains extra meta data about results, if available
+} catch (err) {
+  console.log(err);
+}
+
+// close the connection
+await db.end();
