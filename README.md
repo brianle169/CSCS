@@ -11,5 +11,28 @@ This project built a GUI (Graphical User Interface) to allow interactions with a
 
 ## How to run this project
 
-1. This
-2. That
+1. **Install dependencies**
+
+   ```
+   npm install
+   ```
+
+2. **Build the Tailwind CSS**
+
+   In one terminal, run the watcher and leave it running while you work:
+
+   ```
+   npm run build:css
+   ```
+
+3. **Start the server**
+
+   In a second terminal:
+
+   ```
+   npm start
+   ```
+
+4. **Open the app**
+
+   Visit [http://localhost:3000](http://localhost:3000) in your browser.
