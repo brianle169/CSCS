@@ -1,7 +1,7 @@
 import express from "express";
 import { getPersonnels } from "../db.js";
 
-const personnelsRoute = express.Router();
+const personnelsRoute = express.Router({ mergeParams: true });
 
 personnelsRoute.get("/", async (req, res) => {
   const data = await getPersonnels();

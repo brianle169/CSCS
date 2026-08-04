@@ -1,7 +1,7 @@
 import express from "express";
 import { getClubMembers } from "../db.js";
 
-const clubMembersRoute = express.Router();
+const clubMembersRoute = express.Router({ mergeParams: true });
 
 clubMembersRoute.get("/", async (req, res) => {
   const data = await getClubMembers();

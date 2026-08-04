@@ -1,7 +1,7 @@
 import express from "express";
 import { getLocations } from "../db.js";
 
-const locationsRoute = express.Router();
+const locationsRoute = express.Router({ mergeParams: true });
 
 locationsRoute.get("/", async (req, res) => {
   const data = await getLocations();
