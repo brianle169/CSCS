@@ -1,3 +1,4 @@
+  <script src="/js/eventListeners.js" defer></script>
   <%- include('../partials/header', { title: "CSCS Locations" }) %>
   <main class="p-8 max-w-6xl mx-auto grow">
     <h1 class="text-2xl font-bold mb-4">Locations</h1>
@@ -29,6 +30,62 @@
         </div>
       </div>
       <% }); %>
+      <div class="bg-white rounded-lg shadow p-4 flex items-center justify-center">
+        <button id="location-add-button" class="text-lg font-semibold text-blue-600 hover:underline cursor-pointer">
+          + Add New Location
+        </button>
+      </div>
+      <div id="location-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+          <div class="flex justify-between items-start mb-4">
+            <h2 class="text-xl font-bold mb-4">Add New Location</h2>
+            <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('location-modal').classList.add('hidden')">
+              🗙
+            </button>
+          </div>
+          <form id="location-add-form" method="POST" action="/locations" class="space-y-3">
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+              <input type="text" name="name" id="name" required maxlength="100" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div>
+              <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
+              <select name="type" id="type" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                <option value="" disabled selected>Select a type</option>
+                <option value="Head">Head</option>
+                <option value="Branch">Branch</option>
+              </select>
+            </div>
+            <div>
+              <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
+              <input type="text" name="address" id="address" required maxlength="200" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div>
+              <label for="city" class="block text-sm font-medium text-gray-700">City</label>
+              <input type="text" name="city" id="city" required maxlength="50" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div>
+              <label for="province" class="block text-sm font-medium text-gray-700">Province</label>
+              <input type="text" name="province" id="province" required maxlength="50" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div>
+              <label for="postalCode" class="block text-sm font-medium text-gray-700">Postal Code</label>
+              <input type="text" name="postalCode" id="postalCode" required maxlength="10" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div>
+              <label for="webAddress" class="block text-sm font-medium text-gray-700">Web Address</label>
+              <input type="text" name="webAddress" id="webAddress" maxlength="200" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div>
+              <label for="maxCapacity" class="block text-sm font-medium text-gray-700">Max Capacity</label>
+              <input type="number" name="maxCapacity" id="maxCapacity" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+              Add Location
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   </main>
   <%- include('../partials/footer') %>

@@ -24,6 +24,32 @@ export async function getLocations() {
   }
 }
 
+export async function addLocation(data) {
+  if (!data) {
+    throw new Error("No data provided for adding location");
+  }
+
+  try {
+    const [results, fields] = await db.execute(
+      "INSERT INTO `Locations` (Type, Name, Address, City, Province, PostalCode, WebAddress, MaxCapacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        data.type,
+        data.name,
+        data.address,
+        data.city,
+        data.province,
+        data.postalCode,
+        data.webAddress,
+        data.maxCapacity,
+      ],
+    );
+    return results;
+  } catch (err) {
+    console.error("Error adding location:", err);
+    throw err;
+  }
+}
+
 export async function getPersonnels() {
   try {
     const [results, fields] = await db.execute("SELECT * FROM `Personnel`");
