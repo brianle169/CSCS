@@ -203,15 +203,29 @@ export async function deletePersonnel(personnelId) {
   if (!personnelId) {
     throw new Error("No personnel ID provided for deletion");
   }
+
+  // Same for deleting personnel, we need to operate on both tables.
+  // We should also use a transaction here to ensure data integrity.
+  const connection = await db.getConnection();
   try {
-    const [results, fields] = await db.execute(
+    await connection.beginTransaction();
+
+    await connection.execute("DELETE FROM `WorksAt` WHERE PersonnelID = ?", [
+      personnelId,
+    ]);
+
+    const [results, fields] = await connection.execute(
       "DELETE FROM `Personnel` WHERE PersonnelID = ?",
       [personnelId],
     );
+    await connection.commit();
     return results;
   } catch (err) {
+    await connection.rollback();
     console.error("Error deleting personnel:", err);
     throw err;
+  } finally {
+    connection.release();
   }
 }
 
@@ -219,8 +233,12 @@ export async function editPersonnel(personnelId, data) {
   if (!personnelId || !data) {
     throw new Error("Personnel ID and data are required for editing");
   }
+  const connection = await db.getConnection();
   try {
-    const [results, fields] = await db.execute(
+    // Start a transaction to ensure data integrity
+    await connection.beginTransaction();
+
+    const [results, fields] = await connection.execute(
       "UPDATE `Personnel` SET SSN = ?, FirstName = ?, LastName = ?, DateOfBirth = ?, MedicareCardNumber = ?, PhoneNumber = ?, Address = ?, City = ?, Province = ?, PostalCode = ?, Email = ?, Role = ?, Mandate = ? WHERE PersonnelID = ?",
       [
         data.ssn,
@@ -239,10 +257,14 @@ export async function editPersonnel(personnelId, data) {
         personnelId,
       ],
     );
+    await connection.commit();
     return results;
   } catch (err) {
+    await connection.rollback();
     console.error("Error editing personnel:", err);
     throw err;
+  } finally {
+    connection.release();
   }
 }
 
