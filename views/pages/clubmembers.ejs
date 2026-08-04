@@ -1,0 +1,35 @@
+<%- include('../partials/header', { title: "Club Members" }) %>
+<main class="p-8 max-w-6xl mx-auto">
+  <h1 class="text-2xl font-bold">Club Members</h1>
+
+  <table class="border-collapse">
+    <thead>
+      <tr>
+        <th class="border px-2">Membership Number</th>
+        <th class="border px-2">First Name</th>
+        <th class="border px-2">Last Name</th>
+        <th class="border px-2">Date of Birth</th>
+        <th class="border px-2">Height</th>
+        <th class="border px-2">Weight</th>
+        <th class="border px-2">Phone Number</th>
+        <th class="border px-2">Team ID</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% clubMembers.forEach(function(member) { %>
+      <tr>
+        <td class="border px-2"><%= member.MembershipNumber %></td>
+        <td class="border px-2"><%= member.FirstName %></td>
+        <td class="border px-2"><%= member.LastName %></td>
+        <td class="border px-2"><%= member.DateOfBirth %></td>
+        <td class="border px-2"><%= member.Height %></td>
+        <td class="border px-2"><%= member.Weight %></td>
+        <td class="border px-2"><%= member.PhoneNumber %></td>
+        <td class="border px-2"><%= member.TeamID %></td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</main>
+
+<%- include('../partials/footer') %>

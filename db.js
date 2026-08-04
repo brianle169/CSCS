@@ -11,12 +11,48 @@ const db = await mysql.createConnection({
   database: process.env.DB_NAME,
 });
 
-export async function testConnection() {
+export async function getLocations() {
   try {
     const [results, fields] = await db.query("SELECT * FROM `Locations`");
 
     console.log(results); // results contains rows returned by server
     console.log(fields); // fields contains extra meta data about results, if available
+    return results;
+  } catch (err) {
+    console.log(err);
+    return [];
+  }
+}
+
+export async function getPersonnels() {
+  try {
+    const [results, fields] = await db.query("SELECT * FROM `Personnel`");
+    console.log(results);
+    console.log(fields);
+    return results;
+  } catch (err) {
+    console.log(err);
+    return [];
+  }
+}
+
+export async function getFamilyMembers() {
+  try {
+    const [results, fields] = await db.query("SELECT * FROM `FamilyMembers`");
+    console.log(results);
+    console.log(fields);
+    return results;
+  } catch (err) {
+    console.log(err);
+    return [];
+  }
+}
+
+export async function getClubMembers() {
+  try {
+    const [results, fields] = await db.query("SELECT * FROM `ClubMembers`");
+    console.log(results);
+    console.log(fields);
     return results;
   } catch (err) {
     console.log(err);

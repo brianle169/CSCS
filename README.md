@@ -30,7 +30,7 @@ This project built a GUI (Graphical User Interface) to allow interactions with a
    In a second terminal:
 
    ```
-   npm start
+   npm run dev
    ```
 
 4. **Open the app**

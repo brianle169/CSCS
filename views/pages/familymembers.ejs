@@ -1,0 +1,29 @@
+<%- include('../partials/header', { title: "Family Members" }) %>
+<main class="p-8 max-w-6xl mx-auto">
+  <h1 class="text-2xl font-bold">Family Members</h1>
+
+  <table class="border-collapse">
+    <thead>
+      <tr>
+        <th class="border px-2">ID</th>
+        <th class="border px-2">First Name</th>
+        <th class="border px-2">Last Name</th>
+        <th class="border px-2">Email</th>
+        <th class="border px-2">Phone Number</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% familyMembers.forEach(function(member) { %>
+      <tr>
+        <td class="border px-2"><%= member.FamilyMemberID %></td>
+        <td class="border px-2"><%= member.FirstName %></td>
+        <td class="border px-2"><%= member.LastName %></td>
+        <td class="border px-2"><%= member.Email %></td>
+        <td class="border px-2"><%= member.PhoneNumber %></td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</main>
+
+<%- include('../partials/footer') %>
