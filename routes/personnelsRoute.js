@@ -3,6 +3,7 @@ import {
   getPersonnels,
   addPersonnel,
   deletePersonnel,
+  endPersonnelContract,
   editPersonnel,
   getPersonnelsWithLocations,
   getLocations,
@@ -35,6 +36,17 @@ personnelsRoute
     } catch (err) {
       console.error("Error deleting personnel:", err);
       res.status(400).send("Error deleting personnel");
+    }
+  })
+  .post("/:id/end-contract", async (req, res) => {
+    try {
+      const personnelId = req.params.id;
+      const result = await endPersonnelContract(personnelId);
+      console.log(result);
+      res.redirect("/personnels");
+    } catch (err) {
+      console.error("Error ending personnel contract:", err);
+      res.status(400).send("Error ending personnel contract");
     }
   })
   .post("/:id/edit", async (req, res) => {

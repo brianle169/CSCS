@@ -229,6 +229,22 @@ export async function deletePersonnel(personnelId) {
   }
 }
 
+export async function endPersonnelContract(personnelId) {
+  if (!personnelId) {
+    throw new Error("No personnel ID provided for ending contract");
+  }
+  try {
+    const [results] = await db.execute(
+      "UPDATE `WorksAt` SET EndDate = CURDATE() WHERE PersonnelID = ? AND EndDate IS NULL",
+      [personnelId],
+    );
+    return results;
+  } catch (err) {
+    console.error("Error ending personnel contract:", err);
+    throw err;
+  }
+}
+
 export async function editPersonnel(personnelId, data) {
   if (!personnelId || !data) {
     throw new Error("Personnel ID and data are required for editing");
