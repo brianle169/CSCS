@@ -19,10 +19,61 @@
         </dl>
 
         <div class="mt-4 flex gap-2">
-          <a href="" class="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700">
+          <button id="location-edit-button-<%= loc.LocationID %>" class="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
             Edit
-          </a>
-          <form method="POST" action="" onsubmit="return confirm('Delete this location?');">
+          </button>
+          <div id="location-edit-modal-<%= loc.LocationID %>" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+              <div class="flex justify-between items-start mb-4">
+                <h2 class="text-xl font-bold mb-4">Edit Location</h2>
+                <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('location-edit-modal-<%= loc.LocationID %>').classList.add('hidden')">
+                  🗙
+                </button>
+              </div>
+              <form id="location-edit-form" class="space-y-3" data-location-id="<%= loc.LocationID %>" method="POST" action="/locations/<%= loc.LocationID %>/edit">
+                <div>
+                  <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                  <input type="text" name="name" id="name" required maxlength="100" value="<%= loc.Name %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                  <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
+                  <select name="type" id="type" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <option value="" disabled selected>Select a type</option>
+                    <option value="Head" <%= loc.Type === 'Head' ? 'selected' : '' %>>Head</option>
+                    <option value="Branch" <%= loc.Type === 'Branch' ? 'selected' : '' %>>Branch</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
+                  <input type="text" name="address" id="address" required maxlength="200" value="<%= loc.Address %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                  <label for="city" class="block text-sm font-medium text-gray-700">City</label>
+                  <input type="text" name="city" id="city" required maxlength="50" value="<%= loc.City %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                  <label for="province" class="block text-sm font-medium text-gray-700">Province</label>
+                  <input type="text" name="province" id="province" required maxlength="50" value="<%= loc.Province %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                  <label for="postalCode" class="block text-sm font-medium text-gray-700">Postal Code</label>
+                  <input type="text" name="postalCode" id="postalCode" required maxlength="10" value="<%= loc.PostalCode %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                  <label for="webAddress" class="block text-sm font-medium text-gray-700">Web Address</label>
+                  <input type="text" name="webAddress" id="webAddress" maxlength="200" value="<%= loc.WebAddress %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                  <label for="maxCapacity" class="block text-sm font-medium text-gray-700">Max Capacity</label>
+                  <input type="number" name="maxCapacity" id="maxCapacity" required value="<%= loc.MaxCapacity %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+                  Edit Location
+                </button>
+              </form>
+            </div>
+          </div>
+          <form method="POST" action="/locations/<%= loc.LocationID %>/delete" onsubmit="return confirm('Are you sure you want to delete this location?');">
             <button type="submit" class="px-3 py-1 text-sm rounded bg-red-600 text-white hover:bg-red-700">
               Delete
             </button>
@@ -30,16 +81,17 @@
         </div>
       </div>
       <% }); %>
+
       <div class="bg-white rounded-lg shadow p-4 flex items-center justify-center">
         <button id="location-add-button" class="text-lg font-semibold text-blue-600 hover:underline cursor-pointer">
           + Add New Location
         </button>
       </div>
-      <div id="location-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div id="location-add-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
           <div class="flex justify-between items-start mb-4">
             <h2 class="text-xl font-bold mb-4">Add New Location</h2>
-            <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('location-modal').classList.add('hidden')">
+            <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('location-add-modal').classList.add('hidden')">
               🗙
             </button>
           </div>

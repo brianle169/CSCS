@@ -50,6 +50,48 @@ export async function addLocation(data) {
   }
 }
 
+export async function deleteLocation(locationId) {
+  if (!locationId) {
+    throw new Error("No location ID provided for deletion");
+  }
+  try {
+    const [results, fields] = await db.execute(
+      "DELETE FROM `Locations` WHERE LocationID = ?",
+      [locationId],
+    );
+    return results;
+  } catch (err) {
+    console.error("Error deleting location:", err);
+    throw err;
+  }
+}
+
+export async function editLocation(locationId, data) {
+  if (!locationId || !data) {
+    throw new Error("Location ID and data are required for editing");
+  }
+  try {
+    const [results, fields] = await db.execute(
+      "UPDATE `Locations` SET Type = ?, Name = ?, Address = ?, City = ?, Province = ?, PostalCode = ?, WebAddress = ?, MaxCapacity = ? WHERE LocationID = ?",
+      [
+        data.type,
+        data.name,
+        data.address,
+        data.city,
+        data.province,
+        data.postalCode,
+        data.webAddress,
+        data.maxCapacity,
+        locationId,
+      ],
+    );
+    return results;
+  } catch (err) {
+    console.error("Error editing location:", err);
+    throw err;
+  }
+}
+
 export async function getPersonnels() {
   try {
     const [results, fields] = await db.execute("SELECT * FROM `Personnel`");
