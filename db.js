@@ -162,26 +162,68 @@ export async function addPersonnel(data) {
   try {
     await connection.beginTransaction();
 
-    const [personnelResult] = await connection.execute(
-      "INSERT INTO `Personnel` (SSN, FirstName, LastName, DateOfBirth, MedicareCardNumber, PhoneNumber, Address, City, Province, PostalCode, Email, Role, Mandate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [
-        data.ssn,
-        data.firstName,
-        data.lastName,
-        data.dateOfBirth,
-        data.medicareCardNumber || null,
-        data.phoneNumber || null,
-        data.address || null,
-        data.city || null,
-        data.province || null,
-        data.postalCode || null,
-        data.email || null,
-        data.role,
-        data.mandate,
-      ],
+    // Check for existing SSN to avoid duplicates.
+    // This is a typical case of re-hiring personnel, so we should allow the same SSN to be added again.
+
+    const [existingPersonnel] = await connection.execute(
+      "SELECT PersonnelID FROM `Personnel` WHERE SSN = ?",
+      [data.ssn],
     );
 
-    const personnelId = personnelResult.insertId;
+    let personnelId;
+    if (existingPersonnel.length > 0) {
+      personnelId = existingPersonnel[0].PersonnelID;
+
+      const [active] = await connection.execute(
+        "SELECT LocationID FROM `WorksAt` WHERE PersonnelID = ? AND EndDate IS NULL",
+        [personnelId],
+      );
+
+      if (active.length > 0) {
+        throw new Error(
+          "Personnel with this SSN is already active at a location. End the current contract before adding a new one.",
+        );
+      }
+
+      await connection.execute(
+        "UPDATE `Personnel` SET FirstName = ?, LastName = ?, DateOfBirth = ?, MedicareCardNumber = ?, PhoneNumber = ?, Address = ?, City = ?, Province = ?, PostalCode = ?, Email = ?, Role = ?, Mandate = ? WHERE PersonnelID = ?",
+        [
+          data.firstName,
+          data.lastName,
+          data.dateOfBirth,
+          data.medicareCardNumber || null,
+          data.phoneNumber || null,
+          data.address || null,
+          data.city || null,
+          data.province || null,
+          data.postalCode || null,
+          data.email || null,
+          data.role,
+          data.mandate,
+          personnelId,
+        ],
+      );
+    } else {
+      const [personnelResult] = await connection.execute(
+        "INSERT INTO `Personnel` (SSN, FirstName, LastName, DateOfBirth, MedicareCardNumber, PhoneNumber, Address, City, Province, PostalCode, Email, Role, Mandate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          data.ssn,
+          data.firstName,
+          data.lastName,
+          data.dateOfBirth,
+          data.medicareCardNumber || null,
+          data.phoneNumber || null,
+          data.address || null,
+          data.city || null,
+          data.province || null,
+          data.postalCode || null,
+          data.email || null,
+          data.role,
+          data.mandate,
+        ],
+      );
+      personnelId = personnelResult.insertId;
+    }
 
     await connection.execute(
       "INSERT INTO `WorksAt` (PersonnelID, LocationID, StartDate) VALUES (?, ?, ?)",
