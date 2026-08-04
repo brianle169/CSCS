@@ -1,32 +1,96 @@
 document.addEventListener("DOMContentLoaded", function () {
+  // This file is shared across pages (Locations, Personnels, ...), so every
+  // lookup below is guarded with an "if it exists on this page" check —
+  // otherwise a page missing one of these elements would throw and stop the
+  // rest of the script from running.
+
+  // --- Locations page ---
   const addLocationButton = document.getElementById("location-add-button");
-  const editLocationButtons = document.querySelectorAll(
-    "button[id^='location-edit-button-']",
-  );
-  const locationModal = document.getElementById("location-add-modal");
-  const locationEditModal = document.getElementById("location-edit-modal");
+  const locationAddModal = document.getElementById("location-add-modal");
   const locationAddForm = document.getElementById("location-add-form");
-  const locationEditForm = document.getElementById("location-edit-form");
 
-  addLocationButton.addEventListener("click", function () {
-    locationModal.classList.toggle("hidden");
-  });
+  if (addLocationButton && locationAddModal) {
+    addLocationButton.addEventListener("click", function () {
+      locationAddModal.classList.toggle("hidden");
+    });
+  }
 
-  editLocationButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      const locationId = this.getAttribute("id").split("-").pop();
-      const locationEditModal = document.getElementById(
+  if (locationAddForm && locationAddModal) {
+    locationAddForm.addEventListener("submit", function () {
+      locationAddModal.classList.add("hidden");
+    });
+  }
+
+  document
+    .querySelectorAll("button[id^='location-edit-button-']")
+    .forEach(function (button) {
+      const locationId = button.getAttribute("id").split("-").pop();
+      const editModal = document.getElementById(
         `location-edit-modal-${locationId}`,
       );
-      locationEditModal.classList.toggle("hidden");
+      if (editModal) {
+        button.addEventListener("click", function () {
+          editModal.classList.toggle("hidden");
+        });
+      }
     });
-  });
 
-  locationEditForm.addEventListener("submit", function () {
-    locationEditModal.classList.add("hidden");
-  });
+  document
+    .querySelectorAll("form[id^='location-edit-form-']")
+    .forEach(function (form) {
+      const locationId = form.getAttribute("id").split("-").pop();
+      const editModal = document.getElementById(
+        `location-edit-modal-${locationId}`,
+      );
+      if (editModal) {
+        form.addEventListener("submit", function () {
+          editModal.classList.add("hidden");
+        });
+      }
+    });
 
-  locationAddForm.addEventListener("submit", function () {
-    locationModal.classList.add("hidden");
-  });
+  // --- Personnels page ---
+  const addPersonnelButton = document.getElementById("personnel-add-button");
+  const personnelAddModal = document.getElementById("personnel-add-modal");
+  const personnelAddForm = document.getElementById("personnel-add-form");
+
+  if (addPersonnelButton && personnelAddModal) {
+    addPersonnelButton.addEventListener("click", function () {
+      personnelAddModal.classList.toggle("hidden");
+    });
+  }
+
+  if (personnelAddForm && personnelAddModal) {
+    personnelAddForm.addEventListener("submit", function () {
+      personnelAddModal.classList.add("hidden");
+    });
+  }
+
+  document
+    .querySelectorAll("button[id^='personnel-edit-button-']")
+    .forEach(function (button) {
+      const personnelId = button.getAttribute("id").split("-").pop();
+      const editModal = document.getElementById(
+        `personnel-edit-modal-${personnelId}`,
+      );
+      if (editModal) {
+        button.addEventListener("click", function () {
+          editModal.classList.toggle("hidden");
+        });
+      }
+    });
+
+  document
+    .querySelectorAll("form[id^='personnel-edit-form-']")
+    .forEach(function (form) {
+      const personnelId = form.getAttribute("id").split("-").pop();
+      const editModal = document.getElementById(
+        `personnel-edit-modal-${personnelId}`,
+      );
+      if (editModal) {
+        form.addEventListener("submit", function () {
+          editModal.classList.add("hidden");
+        });
+      }
+    });
 });
