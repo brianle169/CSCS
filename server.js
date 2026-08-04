@@ -6,34 +6,23 @@ import {
   getFamilyMembers,
   getClubMembers,
 } from "./db.js";
+import locationsRoute from "./routes/locationsRoute.js";
+import personnelsRoute from "./routes/personnelsRoute.js";
+import familyMembersRoute from "./routes/familymembers.js";
+import clubMembersRoute from "./routes/clubmembers.js";
 
 const app = express();
+const port = 3000;
+
 app.set("view engine", "ejs");
 app.use(express.static("public"));
-const port = 3000;
+app.use("/locations", locationsRoute);
+app.use("/personnels", personnelsRoute);
+app.use("/familymembers", familyMembersRoute);
+app.use("/clubmembers", clubMembersRoute);
 
 app.get("/", (req, res) => {
   res.render("pages/home-page");
-});
-
-app.get("/locations", async (req, res) => {
-  const data = await getLocations();
-  res.render("pages/locations", { locations: data });
-});
-
-app.get("/personnels", async (req, res) => {
-  const data = await getPersonnels();
-  res.render("pages/personnels", { personnels: data });
-});
-
-app.get("/familymembers", async (req, res) => {
-  const data = await getFamilyMembers();
-  res.render("pages/familymembers", { familyMembers: data });
-});
-
-app.get("/clubmembers", async (req, res) => {
-  const data = await getClubMembers();
-  res.render("pages/clubmembers", { clubMembers: data });
 });
 
 app.listen(port, () => {
