@@ -1,0 +1,31 @@
+<%- include('../partials/header', { title: "CSCS Personnels" }) %>
+<main class="p-8 max-w-6xl mx-auto grow">
+  <h1 class="text-2xl font-bold">Personnels</h1>
+
+  <table class="border-collapse">
+    <thead>
+      <tr>
+        <th class="border px-2">ID</th>
+        <th class="border px-2">First Name</th>
+        <th class="border px-2">Last Name</th>
+        <th class="border px-2">Email</th>
+        <th class="border px-2">Phone Number</th>
+        <th class="border px-2">Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% personnels.forEach(function(personnel) { %>
+      <tr>
+        <td class="border px-2"><%= personnel.PersonnelID %></td>
+        <td class="border px-2"><%= personnel.FirstName %></td>
+        <td class="border px-2"><%= personnel.LastName %></td>
+        <td class="border px-2"><%= personnel.Email %></td>
+        <td class="border px-2"><%= personnel.PhoneNumber %></td>
+        <td class="border px-2"><%= personnel.Role %></td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</main>
+
+<%- include('../partials/footer') %>

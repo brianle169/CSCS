@@ -1,0 +1,34 @@
+  <%- include('../partials/header', { title: "CSCS Locations" }) %>
+  <main class="p-8 max-w-6xl mx-auto grow">
+    <h1 class="text-2xl font-bold mb-4">Locations</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <% locations.forEach(function(loc) { %>
+      <div class="bg-white rounded-lg shadow p-4">
+        <a href="/locations/<%= loc.LocationID %>" class="text-lg font-semibold text-blue-600 hover:underline">
+          <%= loc.Name %>
+        </a>
+        <p class="text-sm text-gray-500 mb-2"><%= loc.Type %></p>
+
+        <dl class="text-sm text-gray-700 space-y-1">
+          <div>Address: <%= loc.Address %></div>
+          <div>City: <%= loc.City %>, <%= loc.Province %> <%= loc.PostalCode %></div>
+          <div>Web: <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=RDdQw4w9WgXcQ&start_radio=1" target="_blank" class="text-blue-600 hover:underline"><%= loc.WebAddress %></a></div>
+          <div>Max Capacity: <%= loc.MaxCapacity %></div>
+        </dl>
+
+        <div class="mt-4 flex gap-2">
+          <a href="" class="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700">
+            Edit
+          </a>
+          <form method="POST" action="" onsubmit="return confirm('Delete this location?');">
+            <button type="submit" class="px-3 py-1 text-sm rounded bg-red-600 text-white hover:bg-red-700">
+              Delete
+            </button>
+          </form>
+        </div>
+      </div>
+      <% }); %>
+    </div>
+  </main>
+  <%- include('../partials/footer') %>

@@ -1,0 +1,62 @@
+  <%- include('../partials/header', { title: "CSCS Home" }) %>
+
+  <main class="p-8 max-w-6xl mx-auto grow">
+
+    <section class="bg-white rounded-lg shadow p-8 mb-8">
+      <h2 class="text-3xl font-bold mb-2">Welcome to the Country Soccer Club</h2>
+      <p class="text-gray-600">
+        CSCS is a nonprofit organization that develops, promotes, and enhances soccer
+        across our communities. We offer a long-term player development program for
+        members aged 4 and up, across boys' and girls' teams, at our head office and
+        branch locations.
+      </p>
+    </section>
+
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <p class="text-3xl font-bold text-blue-600">4</p>
+        <p class="text-gray-500 text-sm">Locations</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <p class="text-3xl font-bold text-blue-600">xx</p>
+        <p class="text-gray-500 text-sm">Active Members</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <p class="text-3xl font-bold text-blue-600">xx</p>
+        <p class="text-gray-500 text-sm">Personnel</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <p class="text-3xl font-bold text-blue-600">xx</p>
+        <p class="text-gray-500 text-sm">Teams</p>
+      </div>
+    </section>
+
+    <section>
+      <h3 class="text-xl font-bold mb-4">Quick Links</h3>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <a href="/locations" class="block bg-white rounded-lg shadow p-4 hover:shadow-md transition">
+          <p class="font-semibold">Locations</p>
+          <p class="text-gray-500 text-sm">View branches &amp; the head office</p>
+        </a>
+        <a href="/personnels" class="block bg-white rounded-lg shadow p-4 hover:shadow-md transition">
+          <p class="font-semibold">Personnel</p>
+          <p class="text-gray-500 text-sm">Coaches, admins &amp; staff</p>
+        </a>
+        <a href="/clubmembers" class="block bg-white rounded-lg shadow p-4 hover:shadow-md transition">
+          <p class="font-semibold">Members</p>
+          <p class="text-gray-500 text-sm">Major &amp; minor club members</p>
+        </a>
+        <a href="/teamformations" class="block bg-white rounded-lg shadow p-4 hover:shadow-md transition">
+          <p class="font-semibold">Team Formations</p>
+          <p class="text-gray-500 text-sm">Upcoming games &amp; training sessions</p>
+        </a>
+        <a href="/reports" class="block bg-white rounded-lg shadow p-4 hover:shadow-md transition">
+          <p class="font-semibold">Reports</p>
+          <p class="text-gray-500 text-sm">Club statistics &amp; queries</p>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <%- include('../partials/footer') %>
