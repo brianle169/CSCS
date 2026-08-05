@@ -6,8 +6,8 @@ import {
   endPersonnelContract,
   editPersonnel,
   getPersonnelsWithLocations,
-  getLocations,
-} from "../db.js";
+} from "../db/personnel.js";
+import { getLocations } from "../db/locations.js";
 
 const personnelsRoute = express.Router({ mergeParams: true });
 

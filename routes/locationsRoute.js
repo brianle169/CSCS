@@ -4,7 +4,7 @@ import {
   addLocation,
   deleteLocation,
   editLocation,
-} from "../db.js";
+} from "../db/locations.js";
 
 const locationsRoute = express.Router({ mergeParams: true });
 

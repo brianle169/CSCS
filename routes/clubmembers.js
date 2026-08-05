@@ -6,7 +6,7 @@ import {
   editClubMember,
   addPayment,
   getTeams,
-} from "../db.js";
+} from "../db/clubMembers.js";
 
 const clubMembersRoute = express.Router({ mergeParams: true });
 
