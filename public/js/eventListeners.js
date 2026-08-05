@@ -138,4 +138,18 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
     });
+
+  document
+    .querySelectorAll("button[id^='clubmember-pay-button-']")
+    .forEach(function (button) {
+      const membershipNumber = button.getAttribute("id").split("-").pop();
+      const payModal = document.getElementById(
+        `clubmember-pay-modal-${membershipNumber}`,
+      );
+      if (payModal) {
+        button.addEventListener("click", function () {
+          payModal.classList.toggle("hidden");
+        });
+      }
+    });
 });

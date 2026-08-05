@@ -4,6 +4,7 @@ import {
   addClubMember,
   deleteClubMember,
   editClubMember,
+  addPayment,
   getTeams,
 } from "../db.js";
 
@@ -46,6 +47,18 @@ clubMembersRoute
     } catch (err) {
       console.error("Error editing club member:", err);
       res.status(400).send("Error editing club member: " + err.message);
+    }
+  })
+  .post("/:id/pay", async (req, res) => {
+    try {
+      const membershipNumber = req.params.id;
+      const data = { ...req.body, membershipNumber };
+      const result = await addPayment(data);
+      console.log(result);
+      res.redirect("/clubmembers");
+    } catch (err) {
+      console.error("Error adding payment:", err);
+      res.status(400).send("Error adding payment: " + err.message);
     }
   });
 
