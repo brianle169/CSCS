@@ -1,35 +1,127 @@
+<script src="/js/eventListeners.js" defer></script>
 <%- include('../partials/header', { title: "Club Members" }) %>
-<main class="p-8 max-w-6xl mx-auto grow">
-  <h1 class="text-2xl font-bold">Club Members</h1>
+<main class="p-8 max-w-6xl w-full mx-auto grow">
+  <h1 class="text-2xl font-bold mb-6">Club Members</h1>
 
-  <table class="border-collapse">
-    <thead>
-      <tr>
-        <th class="border px-2">Membership Number</th>
-        <th class="border px-2">First Name</th>
-        <th class="border px-2">Last Name</th>
-        <th class="border px-2">Date of Birth</th>
-        <th class="border px-2">Height</th>
-        <th class="border px-2">Weight</th>
-        <th class="border px-2">Phone Number</th>
-        <th class="border px-2">Team ID</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% clubMembers.forEach(function(member) { %>
-      <tr>
-        <td class="border px-2"><%= member.MembershipNumber %></td>
-        <td class="border px-2"><%= member.FirstName %></td>
-        <td class="border px-2"><%= member.LastName %></td>
-        <td class="border px-2"><%= member.DateOfBirth %></td>
-        <td class="border px-2"><%= member.Height %></td>
-        <td class="border px-2"><%= member.Weight %></td>
-        <td class="border px-2"><%= member.PhoneNumber %></td>
-        <td class="border px-2"><%= member.TeamID %></td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
+  <% Object.values(clubMembers).forEach(function(location) { %>
+  <section class="mb-10">
+    <h2 class="text-xl font-bold mb-4"><%= location.LocationName %></h2>
+
+    <% Object.values(location.Teams).forEach(function(team) { %>
+    <div class="mb-6 pl-4 border-l-4 border-blue-200">
+      <h3 class="text-lg font-semibold mb-3">
+        <%= team.TeamName %>
+        <span class="text-sm text-gray-500 font-normal">(<%= team.TeamGender %>)</span>
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h4 class="text-sm font-semibold text-gray-600 mb-2">Major Members</h4>
+          <% if (team.Major.length === 0) { %>
+          <p class="text-sm text-gray-400">None</p>
+          <% } %>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <% team.Major.forEach(function(member) { %>
+            <%- include('../partials/clubmember-card', { member: member, teams: teams }) %>
+            <% }); %>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-semibold text-gray-600 mb-2">Minor Members</h4>
+          <% if (team.Minor.length === 0) { %>
+          <p class="text-sm text-gray-400">None</p>
+          <% } %>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <% team.Minor.forEach(function(member) { %>
+            <%- include('../partials/clubmember-card', { member: member, teams: teams }) %>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% }); %>
+  </section>
+  <% }); %>
+
+  <div class="bg-white rounded-lg shadow p-4 flex items-center justify-center max-w-xs">
+    <button id="clubmember-add-button" class="text-lg font-semibold text-blue-600 hover:underline cursor-pointer">
+      + Add New Club Member
+    </button>
+  </div>
+  <div id="clubmember-add-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-start mb-4">
+        <h2 class="text-xl font-bold mb-4">Add New Club Member</h2>
+        <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('clubmember-add-modal').classList.add('hidden')">
+          🗙
+        </button>
+      </div>
+      <form id="clubmember-add-form" class="space-y-3" method="POST" action="/clubmembers">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">First Name</label>
+          <input type="text" name="firstName" required maxlength="50" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Last Name</label>
+          <input type="text" name="lastName" required maxlength="50" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
+          <input type="date" name="dateOfBirth" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Height (cm)</label>
+          <input type="number" step="0.01" name="height" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Weight (kg)</label>
+          <input type="number" step="0.01" name="weight" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">SSN</label>
+          <input type="text" name="ssn" required maxlength="20" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Medicare Card Number</label>
+          <input type="text" name="medicareCardNumber" maxlength="20" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+          <input type="text" name="phoneNumber" maxlength="20" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Address</label>
+          <input type="text" name="address" maxlength="100" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">City</label>
+          <input type="text" name="city" maxlength="50" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Province</label>
+          <input type="text" name="province" maxlength="50" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Postal Code</label>
+          <input type="text" name="postalCode" maxlength="10" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Team</label>
+          <select name="teamId" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <option value="" disabled selected>Select a team</option>
+            <% teams.forEach(function(t) { %>
+            <option value="<%= t.TeamID %>"><%= t.Name %></option>
+            <% }); %>
+          </select>
+        </div>
+        <p class="text-xs text-gray-500">Major/Minor status is set automatically based on date of birth.</p>
+        <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+          Add Club Member
+        </button>
+      </form>
+    </div>
+  </div>
 </main>
 
 <%- include('../partials/footer') %>
