@@ -1,0 +1,54 @@
+<script src="/js/eventListeners.js" defer></script>
+<%- include('../partials/header', { title: "Reports" }) %>
+<main class="p-8 max-w-6xl w-full mx-auto grow">
+  <h1 class="text-2xl font-bold mb-6">Reports</h1>
+
+  <div class="space-y-3">
+    <% reports.forEach(function(report) { %>
+    <div class="bg-white rounded-lg shadow">
+      <button id="report-toggle-<%= report.id %>" type="button" class="report-toggle w-full text-left p-4 flex justify-between items-start gap-4 cursor-pointer">
+        <div>
+          <p class="font-semibold">#<%= report.id %> — <%= report.title %></p>
+          <p class="text-sm text-gray-500 mt-1"><%= report.description %></p>
+        </div>
+        <span class="report-toggle-arrow text-gray-400 text-sm shrink-0 mt-1">▼</span>
+      </button>
+
+      <div id="report-body-<%= report.id %>" class="hidden border-t px-4 pb-4">
+        <% if (report.needsLocation || report.needsDateRange) { %>
+        <div class="flex flex-wrap gap-3 items-end py-3">
+          <% if (report.needsLocation) { %>
+          <div>
+            <label class="block text-xs font-medium text-gray-700">Location</label>
+            <select class="p-1.5 mt-1 border-gray-300 rounded-md shadow-sm text-sm">
+              <% locations.forEach(function(loc) { %>
+              <option value="<%= loc.LocationID %>"><%= loc.Name %></option>
+              <% }); %>
+            </select>
+          </div>
+          <% } %>
+          <% if (report.needsDateRange) { %>
+          <div>
+            <label class="block text-xs font-medium text-gray-700">From</label>
+            <input type="date" class="p-1.5 mt-1 border-gray-300 rounded-md shadow-sm text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700">To</label>
+            <input type="date" class="p-1.5 mt-1 border-gray-300 rounded-md shadow-sm text-sm">
+          </div>
+          <% } %>
+          <button type="button" class="px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+            Run Report
+          </button>
+        </div>
+        <p class="text-xs text-gray-400 italic mb-2">Filters shown for reference — not wired up yet, since this report's query hasn't been written.</p>
+        <% } %>
+
+        <%- include('../partials/report-table', { columns: report.columns, rows: report.rows }) %>
+      </div>
+    </div>
+    <% }); %>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

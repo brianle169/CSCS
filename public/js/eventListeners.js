@@ -152,4 +152,19 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
     });
+
+  // --- Reports page ---
+  document.querySelectorAll(".report-toggle").forEach(function (button) {
+    const reportId = button.getAttribute("id").split("-").pop();
+    const body = document.getElementById(`report-body-${reportId}`);
+    const arrow = button.querySelector(".report-toggle-arrow");
+    if (body) {
+      button.addEventListener("click", function () {
+        body.classList.toggle("hidden");
+        if (arrow) {
+          arrow.classList.toggle("rotate-180");
+        }
+      });
+    }
+  });
 });
