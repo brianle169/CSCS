@@ -14,6 +14,8 @@ const db = mysql.createPool({
   queueLimit: 0,
 });
 
+const MEMBERSHIP_FEES = { Major: 200, Minor: 100 };
+
 export async function getLocations() {
   try {
     const [results, fields] = await db.execute("SELECT * FROM `Locations`");
@@ -354,7 +356,9 @@ export async function getClubMembersWithLocationsAndTeams() {
         "cm.SSN AS SSN, cm.MedicareCardNumber AS MedicareCardNumber, " +
         "cm.PhoneNumber AS PhoneNumber, cm.Address AS Address, cm.City AS City, " +
         "cm.Province AS Province, cm.PostalCode AS PostalCode, " +
-        "CASE WHEN mj.MembershipNumber IS NOT NULL THEN 'Major' ELSE 'Minor' END AS MemberType " +
+        "CASE WHEN mj.MembershipNumber IS NOT NULL THEN 'Major' ELSE 'Minor' END AS MemberType, " +
+        "(SELECT COALESCE(SUM(p.Amount), 0) FROM `Payments` p WHERE p.MembershipNumber = cm.MembershipNumber AND p.MembershipYear = YEAR(CURDATE())) AS CurrentYearPaid, " +
+        "(SELECT COALESCE(SUM(p.Amount), 0) FROM `Payments` p WHERE p.MembershipNumber = cm.MembershipNumber AND p.MembershipYear = YEAR(CURDATE()) - 1) AS PreviousYearPaid " +
         "FROM `ClubMembers` cm " +
         "JOIN `Teams` t ON cm.TeamID = t.TeamID " +
         "JOIN `Locations` l ON t.LocationID = l.LocationID " +
@@ -388,6 +392,8 @@ export async function getClubMembersWithLocationsAndTeams() {
       }
       const team = location.Teams[row.TeamID];
 
+      const fee = MEMBERSHIP_FEES[row.MemberType];
+
       const member = {
         MembershipNumber: row.MembershipNumber,
         FirstName: row.FirstName,
@@ -403,6 +409,10 @@ export async function getClubMembersWithLocationsAndTeams() {
         Province: row.Province,
         PostalCode: row.PostalCode,
         TeamID: row.TeamID,
+        Fee: fee,
+        CurrentYearPaid: Number(row.CurrentYearPaid),
+        IsFullyPaidThisYear: Number(row.CurrentYearPaid) >= fee,
+        IsActive: Number(row.PreviousYearPaid) >= fee,
       };
 
       (row.MemberType === "Major" ? team.Major : team.Minor).push(member);
@@ -584,6 +594,72 @@ export async function editClubMember(membershipNumber, data) {
   } catch (err) {
     await connection.rollback();
     console.error("Error editing club member:", err);
+    throw err;
+  } finally {
+    connection.release();
+  }
+}
+
+export async function addPayment(data) {
+  if (!data) {
+    throw new Error("No data provided for adding payment");
+  }
+
+  const amount = parseFloat(data.amount);
+  if (!amount || amount <= 0) {
+    throw new Error("Payment amount must be greater than 0.");
+  }
+
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [majorRows] = await connection.execute(
+      "SELECT MembershipNumber FROM `MajorMembers` WHERE MembershipNumber = ?",
+      [data.membershipNumber],
+    );
+    const fee =
+      majorRows.length > 0 ? MEMBERSHIP_FEES.Major : MEMBERSHIP_FEES.Minor;
+
+    const [[existing]] = await connection.execute(
+      "SELECT COUNT(*) AS installments, COALESCE(SUM(Amount), 0) AS totalPaid " +
+        "FROM `Payments` WHERE MembershipNumber = ? AND MembershipYear = ?",
+      [data.membershipNumber, data.membershipYear],
+    );
+
+    if (Number(existing.totalPaid) >= fee) {
+      throw new Error(
+        "This member is already fully paid for this membership year.",
+      );
+    }
+    if (existing.installments >= 4) {
+      throw new Error(
+        "This member has already reached the maximum of 4 installments for this membership year.",
+      );
+    }
+
+    const installmentNumber = existing.installments + 1;
+
+    await connection.execute(
+      "INSERT INTO `Payments` (MembershipNumber, PaymentDate, MembershipYear, Amount, PaymentMethod, InstallmentNumber) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        data.membershipNumber,
+        data.paymentDate,
+        data.membershipYear,
+        amount,
+        data.paymentMethod,
+        installmentNumber,
+      ],
+    );
+
+    const newTotal = Number(existing.totalPaid) + amount;
+    const donation = newTotal > fee ? Number((newTotal - fee).toFixed(2)) : 0;
+
+    await connection.commit();
+    return { installmentNumber, newTotal, fee, donation };
+  } catch (err) {
+    await connection.rollback();
+    console.error("Error adding payment:", err);
     throw err;
   } finally {
     connection.release();

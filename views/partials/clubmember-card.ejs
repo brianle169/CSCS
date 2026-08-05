@@ -1,10 +1,17 @@
+<% const thisYear = new Date().getFullYear(); %>
 <div class="bg-white rounded-lg shadow p-3 text-sm">
-  <p class="font-medium"><%= member.FirstName %> <%= member.LastName %></p>
+  <div class="flex items-center justify-between gap-2">
+    <p class="font-medium"><%= member.FirstName %> <%= member.LastName %></p>
+    <span class="shrink-0 px-1.5 py-0.5 text-[10px] font-semibold rounded <%= member.IsActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' %>">
+      <%= member.IsActive ? 'Active' : 'Inactive' %>
+    </span>
+  </div>
   <p class="text-gray-500">DOB: <%= member.DateOfBirth %></p>
   <p class="text-gray-500">Phone: <%= member.PhoneNumber %></p>
   <p class="text-gray-500">City: <%= member.City %>, <%= member.Province %></p>
+  <p class="text-gray-500"><%= thisYear %> dues: $<%= member.CurrentYearPaid %> / $<%= member.Fee %></p>
 
-  <div class="mt-2 flex gap-2">
+  <div class="mt-2 flex gap-2 items-center">
     <button id="clubmember-edit-button-<%= member.MembershipNumber %>" class="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
       Edit
     </button>
@@ -13,6 +20,56 @@
         Delete
       </button>
     </form>
+    <% if (member.IsFullyPaidThisYear) { %>
+    <span class="text-xs text-green-600 font-medium">Paid ✓</span>
+    <% } else { %>
+    <button id="clubmember-pay-button-<%= member.MembershipNumber %>" class="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700 cursor-pointer">
+      Pay
+    </button>
+    <% } %>
+  </div>
+
+  <div id="clubmember-pay-modal-<%= member.MembershipNumber %>" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm text-left">
+      <div class="flex justify-between items-start mb-4">
+        <h2 class="text-xl font-bold">Record Payment</h2>
+        <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('clubmember-pay-modal-<%= member.MembershipNumber %>').classList.add('hidden')">
+          🗙
+        </button>
+      </div>
+      <p class="text-sm text-gray-500 mb-3">
+        <%= member.FirstName %> <%= member.LastName %> — <%= thisYear %>: $<%= member.CurrentYearPaid %> of $<%= member.Fee %> paid
+      </p>
+      <form class="space-y-3" method="POST" action="/clubmembers/<%= member.MembershipNumber %>/pay">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Membership Year</label>
+          <select name="membershipYear" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <option value="<%= thisYear %>"><%= thisYear %></option>
+            <option value="<%= thisYear + 1 %>"><%= thisYear + 1 %></option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Amount</label>
+          <input type="number" step="0.01" min="0.01" name="amount" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Payment Date</label>
+          <input type="date" name="paymentDate" required value="<%= new Date().toISOString().split('T')[0] %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Payment Method</label>
+          <select name="paymentMethod" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <option value="Cash">Cash</option>
+            <option value="Debit">Debit</option>
+            <option value="Credit Card">Credit Card</option>
+          </select>
+        </div>
+        <p class="text-xs text-gray-500">If this payment exceeds what's owed, the excess is recorded as a donation.</p>
+        <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-green-600 text-white hover:bg-green-700 cursor-pointer">
+          Record Payment
+        </button>
+      </form>
+    </div>
   </div>
 
   <div id="clubmember-edit-modal-<%= member.MembershipNumber %>" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">

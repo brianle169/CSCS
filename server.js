@@ -1,11 +1,5 @@
 import express from "express";
 import path from "path";
-import {
-  getLocations,
-  getPersonnels,
-  getFamilyMembers,
-  getClubMembers,
-} from "./db.js";
 import locationsRoute from "./routes/locationsRoute.js";
 import personnelsRoute from "./routes/personnelsRoute.js";
 import familyMembersRoute from "./routes/familymembers.js";
