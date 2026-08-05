@@ -1,5 +1,5 @@
 import express from "express";
-import { getFamilyMembers } from "../db.js";
+import { getFamilyMembers } from "../db/familyMembers.js";
 
 const familyMembersRoute = express.Router({ mergeParams: true });
 

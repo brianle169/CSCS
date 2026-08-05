@@ -1,6 +1,6 @@
 import express from "express";
+import { getLocations } from "../db/locations.js";
 import {
-  getLocations,
   getReport8,
   getReport9,
   getReport10,
@@ -13,7 +13,7 @@ import {
   getReport17,
   getReport18,
   getReport19,
-} from "../db.js";
+} from "../db/reports.js";
 
 const reportsRoute = express.Router({ mergeParams: true });
 
