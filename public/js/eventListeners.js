@@ -93,4 +93,49 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
     });
+
+  // --- Club Members page ---
+  const addClubMemberButton = document.getElementById("clubmember-add-button");
+  const clubMemberAddModal = document.getElementById("clubmember-add-modal");
+  const clubMemberAddForm = document.getElementById("clubmember-add-form");
+
+  if (addClubMemberButton && clubMemberAddModal) {
+    addClubMemberButton.addEventListener("click", function () {
+      clubMemberAddModal.classList.toggle("hidden");
+    });
+  }
+
+  if (clubMemberAddForm && clubMemberAddModal) {
+    clubMemberAddForm.addEventListener("submit", function () {
+      clubMemberAddModal.classList.add("hidden");
+    });
+  }
+
+  document
+    .querySelectorAll("button[id^='clubmember-edit-button-']")
+    .forEach(function (button) {
+      const membershipNumber = button.getAttribute("id").split("-").pop();
+      const editModal = document.getElementById(
+        `clubmember-edit-modal-${membershipNumber}`,
+      );
+      if (editModal) {
+        button.addEventListener("click", function () {
+          editModal.classList.toggle("hidden");
+        });
+      }
+    });
+
+  document
+    .querySelectorAll("form[id^='clubmember-edit-form-']")
+    .forEach(function (form) {
+      const membershipNumber = form.getAttribute("id").split("-").pop();
+      const editModal = document.getElementById(
+        `clubmember-edit-modal-${membershipNumber}`,
+      );
+      if (editModal) {
+        form.addEventListener("submit", function () {
+          editModal.classList.add("hidden");
+        });
+      }
+    });
 });
