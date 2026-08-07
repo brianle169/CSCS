@@ -20,15 +20,17 @@ export async function getClubMembersWithLocationsAndTeams() {
       "SELECT l.LocationID AS LocationID, l.Name AS LocationName, " +
         "t.TeamID AS TeamID, t.Name AS TeamName, t.Gender AS TeamGender, " +
         "cm.MembershipNumber AS MembershipNumber, cm.FirstName AS FirstName, cm.LastName AS LastName, " +
-        "DATE_FORMAT(cm.DateOfBirth, '%Y-%m-%d') AS DateOfBirth, cm.Height AS Height, cm.Weight AS Weight, " +
+        "DATE_FORMAT(cm.DateOfBirth, '%Y-%m-%d') AS DateOfBirth, cm.Gender AS Gender, " +
+        "cm.Height AS Height, cm.Weight AS Weight, " +
         "cm.SSN AS SSN, cm.MedicareCardNumber AS MedicareCardNumber, " +
-        "cm.PhoneNumber AS PhoneNumber, cm.Address AS Address, cm.City AS City, " +
+        "cm.PhoneNumber AS PhoneNumber, cm.Email AS Email, cm.Address AS Address, cm.City AS City, " +
         "cm.Province AS Province, cm.PostalCode AS PostalCode, " +
         "CASE WHEN mj.MembershipNumber IS NOT NULL THEN 'Major' ELSE 'Minor' END AS MemberType, " +
         "(SELECT COALESCE(SUM(p.Amount), 0) FROM `Payments` p WHERE p.MembershipNumber = cm.MembershipNumber AND p.MembershipYear = YEAR(CURDATE())) AS CurrentYearPaid, " +
         "(SELECT COALESCE(SUM(p.Amount), 0) FROM `Payments` p WHERE p.MembershipNumber = cm.MembershipNumber AND p.MembershipYear = YEAR(CURDATE()) - 1) AS PreviousYearPaid " +
         "FROM `ClubMembers` cm " +
-        "JOIN `Teams` t ON cm.TeamID = t.TeamID " +
+        "JOIN `PlaysFor` pf ON pf.MembershipNumber = cm.MembershipNumber AND pf.EndDate IS NULL " +
+        "JOIN `Teams` t ON pf.TeamID = t.TeamID " +
         "JOIN `Locations` l ON t.LocationID = l.LocationID " +
         "LEFT JOIN `MajorMembers` mj ON cm.MembershipNumber = mj.MembershipNumber " +
         "LEFT JOIN `MinorMembers` mn ON cm.MembershipNumber = mn.MembershipNumber " +
@@ -36,9 +38,10 @@ export async function getClubMembersWithLocationsAndTeams() {
     );
 
     // Transform the flat rows into Location -> Team -> {Major, Minor} groups.
-    // Note: ClubMembers.TeamID is nullable, so a member with no team assigned
-    // would be silently excluded by the JOIN to Teams above — accepted for
-    // now, to be enforced/handled once that situation is possible.
+    // Note: team membership now lives in PlaysFor, and the JOIN above only
+    // keeps the OPEN spell (EndDate IS NULL). A member with no current team —
+    // never assigned, or whose last spell was closed — is silently excluded,
+    // the same behaviour the nullable ClubMembers.TeamID used to give.
     const groupedResults = results.reduce((acc, row) => {
       if (!acc[row.LocationID]) {
         acc[row.LocationID] = {
@@ -67,11 +70,13 @@ export async function getClubMembersWithLocationsAndTeams() {
         FirstName: row.FirstName,
         LastName: row.LastName,
         DateOfBirth: row.DateOfBirth,
+        Gender: row.Gender,
         Height: row.Height,
         Weight: row.Weight,
         SSN: row.SSN,
         MedicareCardNumber: row.MedicareCardNumber,
         PhoneNumber: row.PhoneNumber,
+        Email: row.Email,
         Address: row.Address,
         City: row.City,
         Province: row.Province,
@@ -138,21 +143,22 @@ export async function addClubMember(data) {
     await connection.beginTransaction();
 
     const [result] = await connection.execute(
-      "INSERT INTO `ClubMembers` (FirstName, LastName, DateOfBirth, Height, Weight, SSN, MedicareCardNumber, PhoneNumber, Address, City, Province, PostalCode, TeamID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO `ClubMembers` (FirstName, LastName, DateOfBirth, Gender, Height, Weight, SSN, MedicareCardNumber, PhoneNumber, Email, Address, City, Province, PostalCode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         data.firstName,
         data.lastName,
         data.dateOfBirth,
+        data.gender,
         data.height || null,
         data.weight || null,
         data.ssn,
         data.medicareCardNumber || null,
         data.phoneNumber || null,
+        data.email || null,
         data.address || null,
         data.city || null,
         data.province || null,
         data.postalCode || null,
-        data.teamId,
       ],
     );
 
@@ -163,6 +169,13 @@ export async function addClubMember(data) {
         ? "INSERT INTO `MajorMembers` (MembershipNumber) VALUES (?)"
         : "INSERT INTO `MinorMembers` (MembershipNumber) VALUES (?)",
       [membershipNumber],
+    );
+
+    // The team assignment is no longer a column on the member — it's the
+    // member's first (open-ended) spell in PlaysFor, starting today.
+    await connection.execute(
+      "INSERT INTO `PlaysFor` (MembershipNumber, StartDate, TeamID, EndDate) VALUES (?, CURDATE(), ?, NULL)",
+      [membershipNumber, data.teamId],
     );
 
     await connection.commit();
@@ -196,6 +209,13 @@ export async function deleteClubMember(membershipNumber) {
       [membershipNumber],
     );
 
+    // PlaysFor has a FK to ClubMembers, so every spell has to go before the
+    // member row itself can be removed.
+    await connection.execute(
+      "DELETE FROM `PlaysFor` WHERE MembershipNumber = ?",
+      [membershipNumber],
+    );
+
     const [results] = await connection.execute(
       "DELETE FROM `ClubMembers` WHERE MembershipNumber = ?",
       [membershipNumber],
@@ -224,24 +244,65 @@ export async function editClubMember(membershipNumber, data) {
     await connection.beginTransaction();
 
     await connection.execute(
-      "UPDATE `ClubMembers` SET FirstName = ?, LastName = ?, DateOfBirth = ?, Height = ?, Weight = ?, SSN = ?, MedicareCardNumber = ?, PhoneNumber = ?, Address = ?, City = ?, Province = ?, PostalCode = ?, TeamID = ? WHERE MembershipNumber = ?",
+      "UPDATE `ClubMembers` SET FirstName = ?, LastName = ?, DateOfBirth = ?, Gender = ?, Height = ?, Weight = ?, SSN = ?, MedicareCardNumber = ?, PhoneNumber = ?, Email = ?, Address = ?, City = ?, Province = ?, PostalCode = ? WHERE MembershipNumber = ?",
       [
         data.firstName,
         data.lastName,
         data.dateOfBirth,
+        data.gender,
         data.height || null,
         data.weight || null,
         data.ssn,
         data.medicareCardNumber || null,
         data.phoneNumber || null,
+        data.email || null,
         data.address || null,
         data.city || null,
         data.province || null,
         data.postalCode || null,
-        data.teamId,
         membershipNumber,
       ],
     );
+
+    // Changing a team is now a change to the member's HISTORY, not an
+    // overwrite: close the spell they're in and open a new one, so PlaysFor
+    // still answers "who played for this team, when".
+    const [openSpells] = await connection.execute(
+      "SELECT TeamID, DATE_FORMAT(StartDate, '%Y-%m-%d') AS StartDate, StartDate = CURDATE() AS StartedToday " +
+        "FROM `PlaysFor` WHERE MembershipNumber = ? AND EndDate IS NULL " +
+        "ORDER BY StartDate DESC LIMIT 1",
+      [membershipNumber],
+    );
+    const currentSpell = openSpells[0];
+    const newTeamId = Number(data.teamId);
+
+    if (!currentSpell) {
+      // No open spell (never assigned, or the last one was closed) — start one.
+      await connection.execute(
+        "INSERT INTO `PlaysFor` (MembershipNumber, StartDate, TeamID, EndDate) VALUES (?, CURDATE(), ?, NULL)",
+        [membershipNumber, newTeamId],
+      );
+    } else if (currentSpell.TeamID !== newTeamId) {
+      if (Number(currentSpell.StartedToday) === 1) {
+        // The current spell began today, so this is someone fixing a mistake
+        // they just made, not a real transfer. Rewrite it in place — opening a
+        // second spell today would collide on PK (MembershipNumber, StartDate).
+        await connection.execute(
+          "UPDATE `PlaysFor` SET TeamID = ? WHERE MembershipNumber = ? AND StartDate = ?",
+          [newTeamId, membershipNumber, currentSpell.StartDate],
+        );
+      } else {
+        // A genuine transfer: close the old spell as of today and open the new.
+        await connection.execute(
+          "UPDATE `PlaysFor` SET EndDate = CURDATE() WHERE MembershipNumber = ? AND StartDate = ?",
+          [membershipNumber, currentSpell.StartDate],
+        );
+        await connection.execute(
+          "INSERT INTO `PlaysFor` (MembershipNumber, StartDate, TeamID, EndDate) VALUES (?, CURDATE(), ?, NULL)",
+          [membershipNumber, newTeamId],
+        );
+      }
+    }
 
     // DateOfBirth may have changed, so recompute Major/Minor and move them
     // between subtype tables if their status flipped.
