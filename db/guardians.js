@@ -61,89 +61,114 @@ async function clearPrimary(connection, membershipNumber, exceptFamilyMemberId) 
   );
 }
 
+// Attaches one guardian to a minor on an ALREADY-OPEN transaction. Shared by
+// the "add a guardian to an existing member" flow and by member registration,
+// which needs the guardians created in the same transaction as the member.
+//
+// `locationId` is where a brand-new person gets registered (LocatedAt). The two
+// callers source it differently — an existing member's current BelongsTo row,
+// versus the location of the team a new member is joining — so it is passed in
+// rather than looked up here. Pass null to skip the LocatedAt row.
+export async function attachGuardian(connection, membershipNumber, locationId, spec) {
+  const guardianType = spec.guardianType === "Primary" ? "Primary" : "Secondary";
+  if (!spec.relationshipType) {
+    throw new Error("Each guardian needs a relationship type.");
+  }
+
+  let familyMemberId;
+
+  if (spec.mode === "existing") {
+    familyMemberId = Number(spec.familyMemberId);
+    if (!familyMemberId) {
+      throw new Error("Select an existing family member to link.");
+    }
+    const [rows] = await connection.execute(
+      "SELECT FamilyMemberID FROM `FamilyMembers` WHERE FamilyMemberID = ?",
+      [familyMemberId],
+    );
+    if (rows.length === 0) {
+      throw new Error("That family member no longer exists.");
+    }
+    // Re-linking someone who already guards this minor would collide on the
+    // primary key (FamilyMemberID, MembershipNumber, StartDate).
+    const [dupe] = await connection.execute(
+      "SELECT FamilyMemberID FROM `GuardianOf` " +
+        "WHERE FamilyMemberID = ? AND MembershipNumber = ? AND EndDate IS NULL",
+      [familyMemberId, membershipNumber],
+    );
+    if (dupe.length > 0) {
+      throw new Error("That person is already an active guardian of this member.");
+    }
+  } else {
+    if (!spec.firstName || !spec.lastName || !spec.dateOfBirth || !spec.ssn) {
+      throw new Error(
+        "A new guardian needs a first name, last name, date of birth and SSN.",
+      );
+    }
+    const [result] = await connection.execute(
+      "INSERT INTO `FamilyMembers` (SSN, MedicareCardNumber, FirstName, LastName, DateOfBirth, PhoneNumber, Address, City, Province, PostalCode, Email) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        spec.ssn,
+        spec.medicareCardNumber || null,
+        spec.firstName,
+        spec.lastName,
+        spec.dateOfBirth,
+        spec.phoneNumber || null,
+        spec.address || null,
+        spec.city || null,
+        spec.province || null,
+        spec.postalCode || null,
+        spec.email || null,
+      ],
+    );
+    familyMemberId = result.insertId;
+
+    // Only brand-new people get a LocatedAt row — someone being linked already
+    // has their own history there.
+    if (locationId) {
+      await connection.execute(
+        "INSERT INTO `LocatedAt` (FamilyMemberID, LocationID, StartDate, EndDate) VALUES (?, ?, CURDATE(), NULL)",
+        [familyMemberId, locationId],
+      );
+    }
+  }
+
+  if (guardianType === "Primary") {
+    await clearPrimary(connection, membershipNumber, familyMemberId);
+  }
+
+  await connection.execute(
+    "INSERT INTO `GuardianOf` (FamilyMemberID, MembershipNumber, RelationshipType, GuardianType, StartDate, EndDate) " +
+      "VALUES (?, ?, ?, ?, CURDATE(), NULL)",
+    [familyMemberId, membershipNumber, spec.relationshipType, guardianType],
+  );
+
+  return familyMemberId;
+}
+
 export async function addGuardian(membershipNumber, data) {
   if (!membershipNumber || !data) {
     throw new Error("Membership number and guardian details are required.");
   }
-  const guardianType = data.guardianType === "Primary" ? "Primary" : "Secondary";
 
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
     await assertMinor(connection, membershipNumber);
 
-    let familyMemberId;
+    const [locationRows] = await connection.execute(
+      "SELECT LocationID FROM `BelongsTo` " +
+        "WHERE MembershipNumber = ? AND EndDate IS NULL " +
+        "ORDER BY StartDate DESC LIMIT 1",
+      [membershipNumber],
+    );
 
-    if (data.mode === "existing") {
-      familyMemberId = Number(data.familyMemberId);
-      if (!familyMemberId) {
-        throw new Error("Select an existing family member to link.");
-      }
-      const [rows] = await connection.execute(
-        "SELECT FamilyMemberID FROM `FamilyMembers` WHERE FamilyMemberID = ?",
-        [familyMemberId],
-      );
-      if (rows.length === 0) {
-        throw new Error("That family member no longer exists.");
-      }
-      // Re-linking someone who already guards this minor would collide on the
-      // primary key (FamilyMemberID, MembershipNumber, StartDate).
-      const [dupe] = await connection.execute(
-        "SELECT FamilyMemberID FROM `GuardianOf` " +
-          "WHERE FamilyMemberID = ? AND MembershipNumber = ? AND EndDate IS NULL",
-        [familyMemberId, membershipNumber],
-      );
-      if (dupe.length > 0) {
-        throw new Error("That person is already an active guardian of this member.");
-      }
-    } else {
-      const [result] = await connection.execute(
-        "INSERT INTO `FamilyMembers` (SSN, MedicareCardNumber, FirstName, LastName, DateOfBirth, PhoneNumber, Address, City, Province, PostalCode, Email) " +
-          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          data.ssn,
-          data.medicareCardNumber || null,
-          data.firstName,
-          data.lastName,
-          data.dateOfBirth,
-          data.phoneNumber || null,
-          data.address || null,
-          data.city || null,
-          data.province || null,
-          data.postalCode || null,
-          data.email || null,
-        ],
-      );
-      familyMemberId = result.insertId;
-
-      // Register the new guardian at whichever branch the minor currently
-      // belongs to, matching how the seeded family members are set up. Only
-      // done for brand-new people — someone being linked already has their own
-      // LocatedAt history.
-      const [locationRows] = await connection.execute(
-        "SELECT LocationID FROM `BelongsTo` " +
-          "WHERE MembershipNumber = ? AND EndDate IS NULL " +
-          "ORDER BY StartDate DESC LIMIT 1",
-        [membershipNumber],
-      );
-      const location = locationRows[0];
-
-      if (location) {
-        await connection.execute(
-          "INSERT INTO `LocatedAt` (FamilyMemberID, LocationID, StartDate, EndDate) VALUES (?, ?, CURDATE(), NULL)",
-          [familyMemberId, location.LocationID],
-        );
-      }
-    }
-
-    if (guardianType === "Primary") {
-      await clearPrimary(connection, membershipNumber, familyMemberId);
-    }
-
-    await connection.execute(
-      "INSERT INTO `GuardianOf` (FamilyMemberID, MembershipNumber, RelationshipType, GuardianType, StartDate, EndDate) " +
-        "VALUES (?, ?, ?, ?, CURDATE(), NULL)",
-      [familyMemberId, membershipNumber, data.relationshipType, guardianType],
+    const familyMemberId = await attachGuardian(
+      connection,
+      membershipNumber,
+      locationRows[0] ? locationRows[0].LocationID : null,
+      data,
     );
 
     await connection.commit();

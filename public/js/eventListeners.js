@@ -153,6 +153,73 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
+  // --- Add Club Member: the guardian section, shown only for minors ---
+  // Major/Minor is decided by date of birth on the server, so this mirrors that
+  // rule client-side to decide what the form shows. It also owns the `required`
+  // flags: a required field inside a hidden block makes the browser refuse to
+  // submit with an unfocusable-control error, so `required` is only ever set on
+  // fields that are actually visible.
+  const guardianSection = document.getElementById("clubmember-guardian-section");
+  const memberDobInput = document.querySelector(
+    "#clubmember-add-form input[name='dateOfBirth']",
+  );
+
+  if (guardianSection && memberDobInput) {
+    const ageOn = function (value) {
+      if (!value) return null;
+      const dob = new Date(value);
+      if (isNaN(dob.getTime())) return null;
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const monthDiff = today.getMonth() - dob.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      return age;
+    };
+
+    const syncGuardianSection = function () {
+      const age = ageOn(memberDobInput.value);
+      const isMinor = age !== null && age < 18;
+      guardianSection.classList.toggle("hidden", !isMinor);
+
+      guardianSection
+        .querySelectorAll(".guardian-existing-select")
+        .forEach(function (select) {
+          // An existing person is already on file, so their personal details
+          // are not asked for again.
+          const slot = select.closest(".guardian-slot");
+          const newFields = slot
+            ? slot.querySelector(".guardian-new-fields")
+            : null;
+          const registeringNew = select.value === "";
+          if (newFields) {
+            newFields.classList.toggle("hidden", !registeringNew);
+            newFields.querySelectorAll("[data-req]").forEach(function (field) {
+              field.required = isMinor && registeringNew;
+            });
+          }
+        });
+
+      // Relationship lives outside the new-person block: always required for a
+      // minor, whichever mode the slot is in.
+      guardianSection
+        .querySelectorAll("select[data-req]")
+        .forEach(function (field) {
+          field.required = isMinor;
+        });
+    };
+
+    memberDobInput.addEventListener("change", syncGuardianSection);
+    memberDobInput.addEventListener("input", syncGuardianSection);
+    guardianSection
+      .querySelectorAll(".guardian-existing-select")
+      .forEach(function (select) {
+        select.addEventListener("change", syncGuardianSection);
+      });
+    syncGuardianSection();
+  }
+
   // --- Guardians (on the Club Members page, under each minor member) ---
   document
     .querySelectorAll("button[id^='guardian-add-button-']")
