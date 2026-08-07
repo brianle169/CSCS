@@ -4,6 +4,7 @@ import locationsRoute from "./routes/locationsRoute.js";
 import personnelsRoute from "./routes/personnelsRoute.js";
 import familyMembersRoute from "./routes/familymembers.js";
 import clubMembersRoute from "./routes/clubmembers.js";
+import teamFormationsRoute from "./routes/teamformations.js";
 import reportsRoute from "./routes/reports.js";
 
 const app = express();
@@ -17,6 +18,7 @@ app.use("/locations", locationsRoute);
 app.use("/personnels", personnelsRoute);
 app.use("/familymembers", familyMembersRoute);
 app.use("/clubmembers", clubMembersRoute);
+app.use("/teamformations", teamFormationsRoute);
 app.use("/reports", reportsRoute);
 
 app.get("/", (req, res) => {

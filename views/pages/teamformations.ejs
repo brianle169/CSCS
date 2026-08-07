@@ -1,0 +1,123 @@
+<script src="/js/eventListeners.js" defer></script>
+<%- include('../partials/header', { title: "Team Formations" }) %>
+<main class="p-8 max-w-6xl w-full mx-auto grow">
+  <h1 class="text-2xl font-bold mb-2">Team Formations</h1>
+  <p class="text-sm text-gray-500 mb-6">
+    Every session, most recent first. Expand a session to see the teams that
+    turned up, their head coach and the players they fielded.
+  </p>
+
+  <% if (sessions.length === 0) { %>
+  <div class="bg-white rounded-lg shadow p-6 text-sm text-gray-500">
+    No sessions have been scheduled yet.
+  </div>
+  <% } %>
+
+  <div class="space-y-3">
+    <% sessions.forEach(function(session, index) { %>
+    <%
+      // The most recent session is the one you almost always want, so it starts
+      // expanded and everything below it starts collapsed.
+      const startOpen = index === 0;
+      const f = session.Formations;
+      const isGame = session.Nature === 'Game';
+      // A game is two teams facing each other, so the header can show the
+      // fixture — and the score once it has been recorded.
+      const hasFixture = isGame && f.length === 2;
+      const scored = hasFixture && f[0].Score !== null && f[1].Score !== null;
+    %>
+    <div class="bg-white rounded-lg shadow">
+      <button id="session-toggle-<%= session.SessionID %>" type="button" class="session-toggle w-full text-left p-4 flex justify-between items-start gap-4 cursor-pointer">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-1.5 py-0.5 text-[10px] font-semibold rounded <%= isGame ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800' %>">
+              <%= session.Nature %>
+            </span>
+            <p class="font-semibold"><%= session.SessionDateLabel %></p>
+            <span class="text-sm text-gray-500"><%= session.SessionTime %></span>
+            <% if (!session.IsPast) { %>
+            <span class="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-green-100 text-green-700">Upcoming</span>
+            <% } %>
+          </div>
+
+          <p class="text-sm mt-1">
+            <% if (f.length === 0) { %>
+            <span class="text-gray-400 italic">No teams assigned to this session yet</span>
+            <% } else if (hasFixture) { %>
+            <span class="font-medium"><%= f[0].TeamName %></span>
+            <% if (scored) { %>
+            <span class="mx-1 px-1.5 py-0.5 rounded bg-gray-100 font-semibold"><%= f[0].Score %> – <%= f[1].Score %></span>
+            <% } else { %>
+            <span class="mx-1 text-gray-400">vs</span>
+            <% } %>
+            <span class="font-medium"><%= f[1].TeamName %></span>
+            <% } else { %>
+            <span class="font-medium"><%= f.map(function(x) { return x.TeamName; }).join(' · ') %></span>
+            <% } %>
+          </p>
+
+          <p class="text-sm text-gray-500 mt-1"><%= session.Address %></p>
+        </div>
+        <span class="session-toggle-arrow text-gray-400 text-sm shrink-0 mt-1 <%= startOpen ? 'rotate-180' : '' %>">▼</span>
+      </button>
+
+      <div id="session-body-<%= session.SessionID %>" class="<%= startOpen ? '' : 'hidden' %> border-t px-4 py-4">
+        <% if (f.length === 0) { %>
+        <p class="text-sm text-gray-400 italic">
+          Nothing to show — no team formation has been created for this session.
+        </p>
+        <% } %>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <% f.forEach(function(formation) { %>
+          <div class="border border-gray-200 rounded-md">
+            <div class="p-3 border-b border-gray-100">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="font-semibold text-sm">
+                    <%= formation.TeamName %>
+                    <span class="text-xs text-gray-400 font-normal">(<%= formation.TeamGender %>)</span>
+                  </p>
+                  <p class="text-xs text-gray-500"><%= formation.LocationName %></p>
+                </div>
+                <% if (isGame) { %>
+                <span class="shrink-0 px-2 py-0.5 text-sm font-bold rounded <%= formation.Score === null ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-800' %>">
+                  <%= formation.Score === null ? '–' : formation.Score %>
+                </span>
+                <% } %>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">
+                Head coach:
+                <span class="text-gray-700"><%= formation.HeadCoach || 'Unassigned' %></span>
+              </p>
+            </div>
+
+            <div class="p-3">
+              <p class="text-xs font-semibold text-gray-600 mb-2">
+                Players (<%= formation.Players.length %>)
+              </p>
+              <% if (formation.Players.length === 0) { %>
+              <p class="text-xs text-gray-400 italic">No players assigned.</p>
+              <% } else { %>
+              <table class="w-full text-xs">
+                <tbody>
+                  <% formation.Players.forEach(function(player) { %>
+                  <tr class="border-t border-gray-100">
+                    <td class="py-1 pr-2"><%= player.FirstName %> <%= player.LastName %></td>
+                    <td class="py-1 text-right text-gray-500 whitespace-nowrap"><%= player.Role %></td>
+                  </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+              <% } %>
+            </div>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+    <% }); %>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

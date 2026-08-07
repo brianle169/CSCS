@@ -264,6 +264,21 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
+  // --- Team Formations page ---
+  document.querySelectorAll(".session-toggle").forEach(function (button) {
+    const sessionId = button.getAttribute("id").split("-").pop();
+    const body = document.getElementById(`session-body-${sessionId}`);
+    const arrow = button.querySelector(".session-toggle-arrow");
+    if (body) {
+      button.addEventListener("click", function () {
+        body.classList.toggle("hidden");
+        if (arrow) {
+          arrow.classList.toggle("rotate-180");
+        }
+      });
+    }
+  });
+
   // --- Reports page ---
   document.querySelectorAll(".report-toggle").forEach(function (button) {
     const reportId = button.getAttribute("id").split("-").pop();
