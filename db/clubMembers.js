@@ -1,4 +1,5 @@
 import db from "./pool.js";
+import { attachGuardian } from "./guardians.js";
 
 // Annual membership fee, per the club's rules — not stored in the schema
 // anywhere, so it lives here as the single source of truth for both the
@@ -67,6 +68,7 @@ export async function getClubMembersWithLocationsAndTeams() {
 
       const member = {
         MembershipNumber: row.MembershipNumber,
+        MemberType: row.MemberType,
         FirstName: row.FirstName,
         LastName: row.LastName,
         DateOfBirth: row.DateOfBirth,
@@ -138,6 +140,27 @@ export async function addClubMember(data) {
     );
   }
 
+  // Minors cannot exist without guardians, so the club rule is enforced here at
+  // registration rather than left for someone to satisfy afterwards: two
+  // guardians, the first primary and the second secondary. Majors never take
+  // guardians, so anything submitted for them is ignored.
+  const isMinor = age < 18;
+  const guardians = isMinor ? data.guardians || [] : [];
+
+  if (isMinor) {
+    if (guardians.length < 2) {
+      throw new Error(
+        "A minor member needs two guardians at registration: one primary and one secondary.",
+      );
+    }
+    const linked = guardians
+      .filter((g) => g.mode === "existing")
+      .map((g) => String(g.familyMemberId));
+    if (new Set(linked).size !== linked.length) {
+      throw new Error("The two guardians must be different people.");
+    }
+  }
+
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
@@ -177,6 +200,27 @@ export async function addClubMember(data) {
       "INSERT INTO `PlaysFor` (MembershipNumber, StartDate, TeamID, EndDate) VALUES (?, CURDATE(), ?, NULL)",
       [membershipNumber, data.teamId],
     );
+
+    if (isMinor) {
+      // A brand-new member has no BelongsTo row yet, so a newly registered
+      // guardian is located by the branch that owns the team being joined.
+      const [teamRows] = await connection.execute(
+        "SELECT LocationID FROM `Teams` WHERE TeamID = ?",
+        [data.teamId],
+      );
+      const locationId = teamRows[0] ? teamRows[0].LocationID : null;
+
+      // Primary first: attachGuardian demotes any existing primary when it
+      // writes one, and doing the secondary first would be a wasted no-op.
+      await attachGuardian(connection, membershipNumber, locationId, {
+        ...guardians[0],
+        guardianType: "Primary",
+      });
+      await attachGuardian(connection, membershipNumber, locationId, {
+        ...guardians[1],
+        guardianType: "Secondary",
+      });
+    }
 
     await connection.commit();
     return { membershipNumber };

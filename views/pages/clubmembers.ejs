@@ -22,7 +22,7 @@
           <% } %>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <% team.Major.forEach(function(member) { %>
-            <%- include('../partials/clubmember-card', { member: member, teams: teams }) %>
+            <%- include('../partials/clubmember-card', { member: member, teams: teams, guardians: guardians, familyMembers: familyMembers }) %>
             <% }); %>
           </div>
         </div>
@@ -34,7 +34,7 @@
           <% } %>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <% team.Minor.forEach(function(member) { %>
-            <%- include('../partials/clubmember-card', { member: member, teams: teams }) %>
+            <%- include('../partials/clubmember-card', { member: member, teams: teams, guardians: guardians, familyMembers: familyMembers }) %>
             <% }); %>
           </div>
         </div>
@@ -128,6 +128,22 @@
           </select>
         </div>
         <p class="text-xs text-gray-500">Major/Minor status is set automatically based on date of birth.</p>
+
+        <!-- Shown by eventListeners.js only when the date of birth makes this a
+             minor. The server re-checks: a minor cannot be registered without
+             two guardians, and guardians submitted for a major are ignored. -->
+        <div id="clubmember-guardian-section" class="hidden space-y-3 pt-2 border-t border-gray-200">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-700">Guardians</h3>
+            <p class="text-xs text-gray-500">
+              A minor member must be registered with two guardians. Pick someone
+              already on file, or fill in the details to register a new person.
+            </p>
+          </div>
+          <%- include('../partials/guardian-slot', { n: 1, title: 'Guardian 1', priority: 'Primary', familyMembers: familyMembers }) %>
+          <%- include('../partials/guardian-slot', { n: 2, title: 'Guardian 2', priority: 'Secondary', familyMembers: familyMembers }) %>
+        </div>
+
         <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
           Add Club Member
         </button>
