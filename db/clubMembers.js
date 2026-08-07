@@ -67,6 +67,7 @@ export async function getClubMembersWithLocationsAndTeams() {
 
       const member = {
         MembershipNumber: row.MembershipNumber,
+        MemberType: row.MemberType,
         FirstName: row.FirstName,
         LastName: row.LastName,
         DateOfBirth: row.DateOfBirth,

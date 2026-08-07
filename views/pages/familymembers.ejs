@@ -1,29 +1,124 @@
+<script src="/js/eventListeners.js" defer></script>
 <%- include('../partials/header', { title: "Family Members" }) %>
-<main class="p-8 max-w-6xl mx-auto grow">
-  <h1 class="text-2xl font-bold">Family Members</h1>
+<main class="p-8 max-w-6xl w-full mx-auto grow">
+  <h1 class="text-2xl font-bold mb-2">Family Members</h1>
+  <p class="text-sm text-gray-500 mb-6">
+    Personal details for everyone registered as a family member. Who they are a
+    guardian of — and whether they are primary or secondary — is managed on the
+    <a href="/clubmembers" class="text-blue-600 hover:underline">Club Members</a>
+    page, under each minor member.
+  </p>
 
-  <table class="border-collapse">
-    <thead>
-      <tr>
-        <th class="border px-2">ID</th>
-        <th class="border px-2">First Name</th>
-        <th class="border px-2">Last Name</th>
-        <th class="border px-2">Email</th>
-        <th class="border px-2">Phone Number</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% familyMembers.forEach(function(member) { %>
-      <tr>
-        <td class="border px-2"><%= member.FamilyMemberID %></td>
-        <td class="border px-2"><%= member.FirstName %></td>
-        <td class="border px-2"><%= member.LastName %></td>
-        <td class="border px-2"><%= member.Email %></td>
-        <td class="border px-2"><%= member.PhoneNumber %></td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
+  <div class="bg-white rounded-lg shadow overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 text-left">
+        <tr>
+          <th class="px-3 py-2 font-semibold">Name</th>
+          <th class="px-3 py-2 font-semibold">Date of Birth</th>
+          <th class="px-3 py-2 font-semibold">Phone</th>
+          <th class="px-3 py-2 font-semibold">Email</th>
+          <th class="px-3 py-2 font-semibold">City</th>
+          <th class="px-3 py-2 font-semibold">Guarding</th>
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% familyMembers.forEach(function(member) { %>
+        <tr class="border-t border-gray-100">
+          <td class="px-3 py-2"><%= member.FirstName %> <%= member.LastName %></td>
+          <td class="px-3 py-2 text-gray-500"><%= member.DateOfBirth %></td>
+          <td class="px-3 py-2 text-gray-500"><%= member.PhoneNumber || '—' %></td>
+          <td class="px-3 py-2 text-gray-500"><%= member.Email || '—' %></td>
+          <td class="px-3 py-2 text-gray-500"><%= member.City || '—' %></td>
+          <td class="px-3 py-2">
+            <% if (member.ActiveWards > 0) { %>
+            <span class="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-blue-100 text-blue-700">
+              <%= member.ActiveWards %> minor<%= member.ActiveWards > 1 ? 's' : '' %>
+            </span>
+            <% } else { %>
+            <span class="text-[11px] text-gray-400">none</span>
+            <% } %>
+          </td>
+          <td class="px-3 py-2 text-right">
+            <button id="familymember-edit-button-<%= member.FamilyMemberID %>" class="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+              Edit
+            </button>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+  <% familyMembers.forEach(function(member) { %>
+  <div id="familymember-edit-modal-<%= member.FamilyMemberID %>" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto text-left">
+      <div class="flex justify-between items-start mb-4">
+        <h2 class="text-xl font-bold">Edit Family Member</h2>
+        <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('familymember-edit-modal-<%= member.FamilyMemberID %>').classList.add('hidden')">
+          🗙
+        </button>
+      </div>
+      <form id="familymember-edit-form-<%= member.FamilyMemberID %>" class="space-y-3" method="POST" action="/familymembers/<%= member.FamilyMemberID %>/edit">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">First Name</label>
+            <input type="text" name="firstName" required maxlength="50" value="<%= member.FirstName %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Last Name</label>
+            <input type="text" name="lastName" required maxlength="50" value="<%= member.LastName %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
+            <input type="date" name="dateOfBirth" required value="<%= member.DateOfBirth %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">SSN</label>
+            <input type="text" name="ssn" required maxlength="20" value="<%= member.SSN %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Medicare Card Number</label>
+            <input type="text" name="medicareCardNumber" maxlength="20" value="<%= member.MedicareCardNumber || '' %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+            <input type="text" name="phoneNumber" maxlength="20" value="<%= member.PhoneNumber || '' %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Email</label>
+          <input type="email" name="email" maxlength="100" value="<%= member.Email || '' %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Address</label>
+          <input type="text" name="address" maxlength="200" value="<%= member.Address || '' %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">City</label>
+            <input type="text" name="city" maxlength="50" value="<%= member.City || '' %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Province</label>
+            <input type="text" name="province" maxlength="50" value="<%= member.Province || '' %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Postal Code</label>
+            <input type="text" name="postalCode" maxlength="10" value="<%= member.PostalCode || '' %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+        </div>
+        <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+          Save Changes
+        </button>
+      </form>
+    </div>
+  </div>
+  <% }); %>
 </main>
 
 <%- include('../partials/footer') %>

@@ -22,7 +22,7 @@
           <% } %>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <% team.Major.forEach(function(member) { %>
-            <%- include('../partials/clubmember-card', { member: member, teams: teams }) %>
+            <%- include('../partials/clubmember-card', { member: member, teams: teams, guardians: guardians, familyMembers: familyMembers }) %>
             <% }); %>
           </div>
         </div>
@@ -34,7 +34,7 @@
           <% } %>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <% team.Minor.forEach(function(member) { %>
-            <%- include('../partials/clubmember-card', { member: member, teams: teams }) %>
+            <%- include('../partials/clubmember-card', { member: member, teams: teams, guardians: guardians, familyMembers: familyMembers }) %>
             <% }); %>
           </div>
         </div>

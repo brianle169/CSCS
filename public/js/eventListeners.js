@@ -153,6 +153,50 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
+  // --- Guardians (on the Club Members page, under each minor member) ---
+  document
+    .querySelectorAll("button[id^='guardian-add-button-']")
+    .forEach(function (button) {
+      const membershipNumber = button.getAttribute("id").split("-").pop();
+      const addModal = document.getElementById(
+        `guardian-add-modal-${membershipNumber}`,
+      );
+      if (addModal) {
+        button.addEventListener("click", function () {
+          addModal.classList.toggle("hidden");
+        });
+      }
+    });
+
+  // --- Family Members page ---
+  document
+    .querySelectorAll("button[id^='familymember-edit-button-']")
+    .forEach(function (button) {
+      const familyMemberId = button.getAttribute("id").split("-").pop();
+      const editModal = document.getElementById(
+        `familymember-edit-modal-${familyMemberId}`,
+      );
+      if (editModal) {
+        button.addEventListener("click", function () {
+          editModal.classList.toggle("hidden");
+        });
+      }
+    });
+
+  document
+    .querySelectorAll("form[id^='familymember-edit-form-']")
+    .forEach(function (form) {
+      const familyMemberId = form.getAttribute("id").split("-").pop();
+      const editModal = document.getElementById(
+        `familymember-edit-modal-${familyMemberId}`,
+      );
+      if (editModal) {
+        form.addEventListener("submit", function () {
+          editModal.classList.add("hidden");
+        });
+      }
+    });
+
   // --- Reports page ---
   document.querySelectorAll(".report-toggle").forEach(function (button) {
     const reportId = button.getAttribute("id").split("-").pop();

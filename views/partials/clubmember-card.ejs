@@ -13,6 +13,10 @@
   <p class="text-gray-500">City: <%= member.City %>, <%= member.Province %></p>
   <p class="text-gray-500"><%= thisYear %> dues: $<%= member.CurrentYearPaid %> / $<%= member.Fee %></p>
 
+  <% if (member.MemberType === 'Minor') { %>
+  <%- include('./clubmember-guardians', { member: member, guardians: guardians, familyMembers: familyMembers }) %>
+  <% } %>
+
   <div class="mt-2 flex gap-2 items-center">
     <button id="clubmember-edit-button-<%= member.MembershipNumber %>" class="px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
       Edit
