@@ -235,6 +235,86 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
+  // --- Family Members page: live filtering ---
+  // Filters the rows already rendered rather than round-tripping to the server.
+  // The whole roster is on the page, so this stays instant.
+  const familyFilterForm = document.getElementById("familymember-filter");
+  const familyNameInput = document.getElementById("filter-name");
+  const familyPhoneInput = document.getElementById("filter-phone-number");
+  const familyEmailInput = document.getElementById("filter-email");
+
+  if (familyFilterForm && familyNameInput && familyPhoneInput && familyEmailInput) {
+    const familyRows = Array.from(document.querySelectorAll(".familymember-row"));
+    const noMatchesRow = document.getElementById("familymember-no-matches");
+    const filterCount = document.getElementById("familymember-filter-count");
+    const clearButton = document.getElementById("familymember-filter-clear");
+
+    // This data is full of French accents (Stéphane, Côté, Bélanger), so both
+    // the query and the value are folded to plain ASCII before comparing —
+    // typing "stephane" still finds "Stéphane".
+    const fold = function (value) {
+      return (value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    };
+    // Phone formatting is inconsistent (514-555-1001, 438 555 1008), so phones
+    // are compared as digits only: "5145551001" matches "514-555-1001".
+    const digitsOnly = function (value) {
+      return (value || "").replace(/\D/g, "");
+    };
+
+    const applyFamilyFilter = function () {
+      const name = fold(familyNameInput.value);
+      const phone = digitsOnly(familyPhoneInput.value);
+      const email = fold(familyEmailInput.value);
+      let shown = 0;
+
+      familyRows.forEach(function (row) {
+        const matches =
+          fold(row.dataset.name).includes(name) &&
+          (phone === "" || digitsOnly(row.dataset.phone).includes(phone)) &&
+          fold(row.dataset.email).includes(email);
+        row.classList.toggle("hidden", !matches);
+        if (matches) shown++;
+      });
+
+      if (noMatchesRow) {
+        noMatchesRow.classList.toggle("hidden", shown > 0);
+      }
+      if (filterCount) {
+        filterCount.textContent =
+          shown === familyRows.length
+            ? `${familyRows.length} family member${familyRows.length === 1 ? "" : "s"}`
+            : `${shown} of ${familyRows.length} family members`;
+      }
+    };
+
+    [familyNameInput, familyPhoneInput, familyEmailInput].forEach(function (input) {
+      input.addEventListener("input", applyFamilyFilter);
+    });
+
+    // The form has no action, so a stray Enter would otherwise reload the page
+    // and wipe the filters.
+    familyFilterForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      applyFamilyFilter();
+    });
+
+    if (clearButton) {
+      clearButton.addEventListener("click", function () {
+        familyNameInput.value = "";
+        familyPhoneInput.value = "";
+        familyEmailInput.value = "";
+        applyFamilyFilter();
+      });
+    }
+
+    // Sets the initial count.
+    applyFamilyFilter();
+  }
+
   // --- Family Members page ---
   document
     .querySelectorAll("button[id^='familymember-edit-button-']")

@@ -1,16 +1,5 @@
 import db from "./pool.js";
 
-// A "team formation" is one team turning up to one session, so the session is
-// the natural unit to display: a game session has two formations facing each
-// other, a training session has one or two training side by side.
-//
-// Fetched as two queries rather than one big join — pulling the rosters in the
-// same statement would repeat every session and formation column once per
-// player (216 assignment rows against 24 sessions), so rosters are fetched flat
-// and stitched onto their formation here.
-
-// Roster order follows the pitch, not the alphabet: keeper, then defence,
-// midfield, attack. Any role missing from this list sorts last.
 const ROLE_ORDER = [
   "Goalkeeper",
   "Sweeper",
@@ -40,12 +29,12 @@ export async function getSessionsWithFormations() {
         "p.PersonnelID AS HeadCoachID, " +
         "p.FirstName AS CoachFirstName, p.LastName AS CoachLastName " +
         "FROM `Sessions` s " +
-        // LEFT so a session with no formation booked yet still appears.
+        // LEFT so a session with no formation booked yet still appears
         "LEFT JOIN `TeamFormations` tf ON tf.SessionID = s.SessionID " +
         "LEFT JOIN `Teams` t ON t.TeamID = tf.TeamID " +
         "LEFT JOIN `Locations` l ON l.LocationID = t.LocationID " +
         "LEFT JOIN `Personnel` p ON p.PersonnelID = tf.HeadCoachID " +
-        // Most recent session first, as required.
+        // Most recent session first
         "ORDER BY s.SessionDate DESC, s.SessionTime DESC, t.Name",
     );
 
