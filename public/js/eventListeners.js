@@ -1,9 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-  // This file is shared across pages (Locations, Personnels, ...), so every
-  // lookup below is guarded with an "if it exists on this page" check —
-  // otherwise a page missing one of these elements would throw and stop the
-  // rest of the script from running.
-
   // --- Locations page ---
   const addLocationButton = document.getElementById("location-add-button");
   const locationAddModal = document.getElementById("location-add-modal");
@@ -153,13 +148,9 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-  // --- Add Club Member: the guardian section, shown only for minors ---
-  // Major/Minor is decided by date of birth on the server, so this mirrors that
-  // rule client-side to decide what the form shows. It also owns the `required`
-  // flags: a required field inside a hidden block makes the browser refuse to
-  // submit with an unfocusable-control error, so `required` is only ever set on
-  // fields that are actually visible.
-  const guardianSection = document.getElementById("clubmember-guardian-section");
+  const guardianSection = document.getElementById(
+    "clubmember-guardian-section",
+  );
   const memberDobInput = document.querySelector(
     "#clubmember-add-form input[name='dateOfBirth']",
   );
@@ -172,7 +163,10 @@ document.addEventListener("DOMContentLoaded", function () {
       const today = new Date();
       let age = today.getFullYear() - dob.getFullYear();
       const monthDiff = today.getMonth() - dob.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < dob.getDate())
+      ) {
         age--;
       }
       return age;
@@ -201,8 +195,6 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
 
-      // Relationship lives outside the new-person block: always required for a
-      // minor, whichever mode the slot is in.
       guardianSection
         .querySelectorAll("select[data-req]")
         .forEach(function (field) {
@@ -243,15 +235,20 @@ document.addEventListener("DOMContentLoaded", function () {
   const familyPhoneInput = document.getElementById("filter-phone-number");
   const familyEmailInput = document.getElementById("filter-email");
 
-  if (familyFilterForm && familyNameInput && familyPhoneInput && familyEmailInput) {
-    const familyRows = Array.from(document.querySelectorAll(".familymember-row"));
+  if (
+    familyFilterForm &&
+    familyNameInput &&
+    familyPhoneInput &&
+    familyEmailInput
+  ) {
+    const familyRows = Array.from(
+      document.querySelectorAll(".familymember-row"),
+    );
     const noMatchesRow = document.getElementById("familymember-no-matches");
     const filterCount = document.getElementById("familymember-filter-count");
     const clearButton = document.getElementById("familymember-filter-clear");
 
-    // This data is full of French accents (Stéphane, Côté, Bélanger), so both
-    // the query and the value are folded to plain ASCII before comparing —
-    // typing "stephane" still finds "Stéphane".
+    // French-accent removal
     const fold = function (value) {
       return (value || "")
         .normalize("NFD")
@@ -259,8 +256,8 @@ document.addEventListener("DOMContentLoaded", function () {
         .toLowerCase()
         .trim();
     };
-    // Phone formatting is inconsistent (514-555-1001, 438 555 1008), so phones
-    // are compared as digits only: "5145551001" matches "514-555-1001".
+
+    // consistent phone number
     const digitsOnly = function (value) {
       return (value || "").replace(/\D/g, "");
     };
@@ -291,12 +288,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     };
 
-    [familyNameInput, familyPhoneInput, familyEmailInput].forEach(function (input) {
-      input.addEventListener("input", applyFamilyFilter);
-    });
+    [familyNameInput, familyPhoneInput, familyEmailInput].forEach(
+      function (input) {
+        input.addEventListener("input", applyFamilyFilter);
+      },
+    );
 
-    // The form has no action, so a stray Enter would otherwise reload the page
-    // and wipe the filters.
     familyFilterForm.addEventListener("submit", function (event) {
       event.preventDefault();
       applyFamilyFilter();
@@ -354,8 +351,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- Team Formations: add a team to a session, edit a formation ---
-  // Both sit inside the session's collapsible body, so each click is stopped
-  // from bubbling up to the session toggle.
   [
     ["formation-add-button-", "formation-add-modal-"],
     ["formation-edit-button-", "formation-edit-modal-"],
@@ -392,9 +387,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-  // Changing a player's role submits immediately — it is the only edit this
-  // page offers, so a separate Save button would be a wasted click. The
-  // <noscript> fallback in the template covers JS being unavailable.
   document
     .querySelectorAll("select.assignment-role-select")
     .forEach(function (select) {

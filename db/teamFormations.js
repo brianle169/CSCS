@@ -16,11 +16,6 @@ export const ROLE_ORDER = [
   "Striker",
 ];
 
-// The database is the authority on the two assignment rules — they live in
-// triggers (main-project/assignment-triggers.sql) so they hold even against
-// raw SQL. A trigger rejection arrives as SQLSTATE 45000; its MESSAGE_TEXT is
-// already written for a human, so it is surfaced as-is rather than replaced
-// with a guess about which rule fired.
 function rethrowAssignmentError(err) {
   if (err && err.sqlState === "45000") {
     throw new Error(err.sqlMessage || err.message);
@@ -68,9 +63,6 @@ export async function getSessionsWithFormations() {
       return acc;
     }, {});
 
-    // Collected into an array rather than an object keyed by SessionID: JS
-    // objects order integer-like keys numerically, which would silently undo
-    // the newest-first ordering the query just established.
     const sessions = [];
     const bySessionId = {};
 
@@ -115,10 +107,6 @@ export async function getSessionsWithFormations() {
   }
 }
 
-// Who may be assigned to a formation, keyed by TeamID. Restricted to members
-// with an OPEN PlaysFor spell for that team, which is both the realistic rule
-// and the reason the gender trigger should never fire from the interface —
-// teams are single-gender, so their players already match.
 export async function getPlayersByTeam() {
   try {
     const [rows] = await db.execute(
@@ -139,10 +127,6 @@ export async function getPlayersByTeam() {
   }
 }
 
-// Options for the "add a team to this session" form. Head coach is restricted
-// to coaching staff — the schema's foreign key allows any personnel, but an
-// administrator is not a plausible choice and every seeded formation uses a
-// coach.
 export async function getFormationOptions() {
   try {
     const [teams] = await db.execute(
@@ -164,7 +148,13 @@ export async function getFormationOptions() {
 }
 
 export async function createSession(data) {
-  if (!data || !data.sessionDate || !data.sessionTime || !data.address || !data.nature) {
+  if (
+    !data ||
+    !data.sessionDate ||
+    !data.sessionTime ||
+    !data.address ||
+    !data.nature
+  ) {
     throw new Error("Date, time, address and nature are all required.");
   }
   try {
@@ -179,9 +169,6 @@ export async function createSession(data) {
   }
 }
 
-// Only an empty session can be removed. Cascading through formations and their
-// assignments from here would delete player records as a side effect of a
-// click meant to tidy up a date — remove the teams first, deliberately.
 export async function deleteSession(sessionId) {
   if (!sessionId) throw new Error("Session is required.");
   try {
@@ -194,7 +181,9 @@ export async function deleteSession(sessionId) {
         `This session still has ${n} team formation${n === 1 ? "" : "s"}. Remove them first.`,
       );
     }
-    return await db.execute("DELETE FROM `Sessions` WHERE SessionID = ?", [sessionId]);
+    return await db.execute("DELETE FROM `Sessions` WHERE SessionID = ?", [
+      sessionId,
+    ]);
   } catch (err) {
     console.error("Error deleting session:", err);
     throw err;
@@ -226,10 +215,14 @@ export async function editFormation(formationId, headCoachId, score) {
     throw new Error("Formation and head coach are required.");
   }
   // An empty score box means "not played yet", which is NULL rather than 0.
-  const parsedScore = score === "" || score === undefined || score === null
-    ? null
-    : Number(score);
-  if (parsedScore !== null && (!Number.isInteger(parsedScore) || parsedScore < 0)) {
+  const parsedScore =
+    score === "" || score === undefined || score === null
+      ? null
+      : Number(score);
+  if (
+    parsedScore !== null &&
+    (!Number.isInteger(parsedScore) || parsedScore < 0)
+  ) {
     throw new Error("Score must be a whole number, or left blank.");
   }
   try {
@@ -237,7 +230,8 @@ export async function editFormation(formationId, headCoachId, score) {
       "UPDATE `TeamFormations` SET HeadCoachID = ?, Score = ? WHERE FormationID = ?",
       [headCoachId, parsedScore, formationId],
     );
-    if (result.affectedRows === 0) throw new Error("That formation no longer exists.");
+    if (result.affectedRows === 0)
+      throw new Error("That formation no longer exists.");
     return result;
   } catch (err) {
     console.error("Error editing formation:", err);
@@ -245,14 +239,15 @@ export async function editFormation(formationId, headCoachId, score) {
   }
 }
 
-// Assignments reference the formation, so they go first — in one transaction,
-// so a failure cannot leave a formation half-emptied.
 export async function deleteFormation(formationId) {
   if (!formationId) throw new Error("Formation is required.");
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    await connection.execute("DELETE FROM `Assignments` WHERE FormationID = ?", [formationId]);
+    await connection.execute(
+      "DELETE FROM `Assignments` WHERE FormationID = ?",
+      [formationId],
+    );
     const [result] = await connection.execute(
       "DELETE FROM `TeamFormations` WHERE FormationID = ?",
       [formationId],
@@ -287,10 +282,6 @@ export async function assignPlayer(formationId, membershipNumber, role) {
   }
 }
 
-// Only the Role changes. Moving a player between formations is deliberately
-// not supported here: it would change the primary key and re-open the conflict
-// question, so it is done as a remove followed by a fresh assignment, which
-// runs the trigger exactly once on the new formation.
 export async function editAssignmentRole(formationId, membershipNumber, role) {
   if (!formationId || !membershipNumber || !role) {
     throw new Error("Formation, player and role are all required.");

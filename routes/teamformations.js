@@ -16,10 +16,6 @@ import {
 
 const teamFormationsRoute = express.Router({ mergeParams: true });
 
-// The assignment rules are enforced by database triggers, so a rejection
-// arrives here as a thrown Error carrying the trigger's message. Sending it
-// back verbatim keeps the reason visible ("already assigned to a formation at
-// 10:00:00 on the same day") instead of a generic failure.
 function fail(res, action, err) {
   console.error(`Error ${action}:`, err);
   res.status(400).send(`Error ${action}: ${err.message}`);
@@ -37,10 +33,6 @@ teamFormationsRoute.get("/", async (req, res) => {
     roles: ROLE_ORDER,
   });
 });
-
-// --- Sessions -------------------------------------------------------------
-// Declared before the ":formationId" routes below so the literal path segments
-// are matched first and can never be swallowed as a formation id.
 
 teamFormationsRoute.post("/sessions", async (req, res) => {
   try {
@@ -60,20 +52,21 @@ teamFormationsRoute.post("/sessions/:sessionId/delete", async (req, res) => {
   }
 });
 
-teamFormationsRoute.post("/sessions/:sessionId/formations", async (req, res) => {
-  try {
-    await createFormation(
-      req.params.sessionId,
-      req.body.teamId,
-      req.body.headCoachId,
-    );
-    res.redirect("/teamformations");
-  } catch (err) {
-    fail(res, "adding team formation", err);
-  }
-});
-
-// --- Formations -----------------------------------------------------------
+teamFormationsRoute.post(
+  "/sessions/:sessionId/formations",
+  async (req, res) => {
+    try {
+      await createFormation(
+        req.params.sessionId,
+        req.body.teamId,
+        req.body.headCoachId,
+      );
+      res.redirect("/teamformations");
+    } catch (err) {
+      fail(res, "adding team formation", err);
+    }
+  },
+);
 
 teamFormationsRoute.post("/formations/:formationId/edit", async (req, res) => {
   try {
@@ -88,16 +81,17 @@ teamFormationsRoute.post("/formations/:formationId/edit", async (req, res) => {
   }
 });
 
-teamFormationsRoute.post("/formations/:formationId/delete", async (req, res) => {
-  try {
-    await deleteFormation(req.params.formationId);
-    res.redirect("/teamformations");
-  } catch (err) {
-    fail(res, "deleting formation", err);
-  }
-});
-
-// --- Assignments ----------------------------------------------------------
+teamFormationsRoute.post(
+  "/formations/:formationId/delete",
+  async (req, res) => {
+    try {
+      await deleteFormation(req.params.formationId);
+      res.redirect("/teamformations");
+    } catch (err) {
+      fail(res, "deleting formation", err);
+    }
+  },
+);
 
 teamFormationsRoute.post("/:formationId/assignments", async (req, res) => {
   try {
