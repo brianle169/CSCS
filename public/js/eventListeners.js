@@ -344,6 +344,65 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
+  // --- Team Formations: create a session ---
+  const sessionAddButton = document.getElementById("session-add-button");
+  const sessionAddModal = document.getElementById("session-add-modal");
+  if (sessionAddButton && sessionAddModal) {
+    sessionAddButton.addEventListener("click", function () {
+      sessionAddModal.classList.toggle("hidden");
+    });
+  }
+
+  // --- Team Formations: add a team to a session, edit a formation ---
+  // Both sit inside the session's collapsible body, so each click is stopped
+  // from bubbling up to the session toggle.
+  [
+    ["formation-add-button-", "formation-add-modal-"],
+    ["formation-edit-button-", "formation-edit-modal-"],
+  ].forEach(function (pair) {
+    document
+      .querySelectorAll(`button[id^='${pair[0]}']`)
+      .forEach(function (button) {
+        const id = button.getAttribute("id").split("-").pop();
+        const modal = document.getElementById(`${pair[1]}${id}`);
+        if (modal) {
+          button.addEventListener("click", function (event) {
+            event.stopPropagation();
+            modal.classList.toggle("hidden");
+          });
+        }
+      });
+  });
+
+  // --- Team Formations: assign a player ---
+  document
+    .querySelectorAll("button[id^='assignment-add-button-']")
+    .forEach(function (button) {
+      const formationId = button.getAttribute("id").split("-").pop();
+      const modal = document.getElementById(
+        `assignment-add-modal-${formationId}`,
+      );
+      if (modal) {
+        button.addEventListener("click", function (event) {
+          // The button sits inside the session's collapsible header region;
+          // without this the click would also toggle the session shut.
+          event.stopPropagation();
+          modal.classList.toggle("hidden");
+        });
+      }
+    });
+
+  // Changing a player's role submits immediately — it is the only edit this
+  // page offers, so a separate Save button would be a wasted click. The
+  // <noscript> fallback in the template covers JS being unavailable.
+  document
+    .querySelectorAll("select.assignment-role-select")
+    .forEach(function (select) {
+      select.addEventListener("change", function () {
+        select.form.submit();
+      });
+    });
+
   // --- Team Formations page ---
   document.querySelectorAll(".session-toggle").forEach(function (button) {
     const sessionId = button.getAttribute("id").split("-").pop();
