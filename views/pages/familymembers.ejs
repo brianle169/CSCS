@@ -4,10 +4,35 @@
   <h1 class="text-2xl font-bold mb-2">Family Members</h1>
   <p class="text-sm text-gray-500 mb-6">
     Personal details for everyone registered as a family member. Who they are a
-    guardian of — and whether they are primary or secondary — is managed on the
+    guardian of, and whether they are primary or secondary, is managed on the
     <a href="/clubmembers" class="text-blue-600 hover:underline">Club Members</a>
     page, under each minor member.
   </p>
+
+  <!-- Filters the rows already on the page — no server round-trip, so no
+       action/method. eventListeners.js suppresses the Enter-key submit. -->
+  <div id="familymember-filter" class="bg-white rounded-lg shadow p-4 mb-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div>
+        <label for="filter-name" class="block text-sm font-medium text-gray-700">Name</label>
+        <input type="text" name="name" id="filter-name" autocomplete="off" placeholder="First or last name" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+      </div>
+      <div>
+        <label for="filter-phone-number" class="block text-sm font-medium text-gray-700">Phone</label>
+        <input type="text" name="phone-number" id="filter-phone-number" autocomplete="off" placeholder="514-555-…" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+      </div>
+      <div>
+        <label for="filter-email" class="block text-sm font-medium text-gray-700">Email</label>
+        <input type="text" name="email" id="filter-email" autocomplete="off" placeholder="name@example.com" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+      </div>
+    </div>
+    <div class="mt-3 flex items-center justify-between gap-3">
+      <p id="familymember-filter-count" class="text-xs text-gray-500"></p>
+      <button type="button" id="familymember-filter-clear" class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer">
+        Clear filters
+      </button>
+    </div>
+  </div>
 
   <div class="bg-white rounded-lg shadow overflow-x-auto">
     <table class="w-full text-sm">
@@ -24,7 +49,9 @@
       </thead>
       <tbody>
         <% familyMembers.forEach(function(member) { %>
-        <tr class="border-t border-gray-100">
+        <!-- The filter matches these data attributes rather than the cell text:
+             empty cells render as "—", which a text search would happily match. -->
+        <tr class="familymember-row border-t border-gray-100" data-name="<%= member.FirstName %> <%= member.LastName %>" data-phone="<%= member.PhoneNumber || '' %>" data-email="<%= member.Email || '' %>">
           <td class="px-3 py-2"><%= member.FirstName %> <%= member.LastName %></td>
           <td class="px-3 py-2 text-gray-500"><%= member.DateOfBirth %></td>
           <td class="px-3 py-2 text-gray-500"><%= member.PhoneNumber || '—' %></td>
@@ -46,6 +73,11 @@
           </td>
         </tr>
         <% }); %>
+        <tr id="familymember-no-matches" class="hidden border-t border-gray-100">
+          <td colspan="7" class="px-3 py-6 text-center text-sm text-gray-400">
+            No family members match these filters.
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>

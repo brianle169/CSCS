@@ -1,0 +1,347 @@
+<script src="/js/eventListeners.js" defer></script>
+<%- include('../partials/header', { title: "Team Formations" }) %>
+<main class="p-8 max-w-6xl w-full mx-auto grow">
+  <div class="flex items-start justify-between gap-4 mb-2">
+    <h1 class="text-2xl font-bold">Team Formations</h1>
+    <button id="session-add-button" class="px-3 py-1.5 text-sm font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shrink-0">
+      + New Session
+    </button>
+  </div>
+  <p class="text-sm text-gray-500 mb-6">
+    Every session, most recent first. Expand a session to see the teams that
+    turned up, their head coach and the players they fielded.
+  </p>
+
+  <div id="session-add-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md text-left">
+      <div class="flex justify-between items-start mb-4">
+        <h2 class="text-xl font-bold">New Session</h2>
+        <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('session-add-modal').classList.add('hidden')">
+          🗙
+        </button>
+      </div>
+      <form class="space-y-3" method="POST" action="/teamformations/sessions">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Date</label>
+            <input type="date" name="sessionDate" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Start time</label>
+            <input type="time" name="sessionTime" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Nature</label>
+          <select name="nature" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <option value="Training">Training</option>
+            <option value="Game">Game</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Address</label>
+          <input type="text" name="address" required maxlength="200" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+        <p class="text-xs text-gray-500">
+          Add the teams once the session exists. Two sessions on the same day
+          less than three hours apart is exactly what the assignment conflict
+          rule guards against.
+        </p>
+        <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+          Create Session
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <% if (sessions.length === 0) { %>
+  <div class="bg-white rounded-lg shadow p-6 text-sm text-gray-500">
+    No sessions have been scheduled yet.
+  </div>
+  <% } %>
+
+  <div class="space-y-3">
+    <% sessions.forEach(function(session, index) { %>
+    <%
+      // The most recent session is the one you almost always want, so it starts
+      // expanded and everything below it starts collapsed.
+      const startOpen = index === 0;
+      const f = session.Formations;
+      const isGame = session.Nature === 'Game';
+      // A game is two teams facing each other, so the header can show the
+      // fixture — and the score once it has been recorded.
+      const hasFixture = isGame && f.length === 2;
+      const scored = hasFixture && f[0].Score !== null && f[1].Score !== null;
+    %>
+    <div class="bg-white rounded-lg shadow">
+      <button id="session-toggle-<%= session.SessionID %>" type="button" class="session-toggle w-full text-left p-4 flex justify-between items-start gap-4 cursor-pointer">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-1.5 py-0.5 text-[10px] font-semibold rounded <%= isGame ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800' %>">
+              <%= session.Nature %>
+            </span>
+            <p class="font-semibold"><%= session.SessionDateLabel %></p>
+            <span class="text-sm text-gray-500"><%= session.SessionTime %></span>
+            <% if (!session.IsPast) { %>
+            <span class="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-green-100 text-green-700">Upcoming</span>
+            <% } %>
+          </div>
+
+          <p class="text-sm mt-1">
+            <% if (f.length === 0) { %>
+            <span class="text-gray-400 italic">No teams assigned to this session yet</span>
+            <% } else if (hasFixture) { %>
+            <span class="font-medium"><%= f[0].TeamName %></span>
+            <% if (scored) { %>
+            <span class="mx-1 px-1.5 py-0.5 rounded bg-gray-100 font-semibold"><%= f[0].Score %> – <%= f[1].Score %></span>
+            <% } else { %>
+            <span class="mx-1 text-gray-400">vs</span>
+            <% } %>
+            <span class="font-medium"><%= f[1].TeamName %></span>
+            <% } else { %>
+            <span class="font-medium"><%= f.map(function(x) { return x.TeamName; }).join(' · ') %></span>
+            <% } %>
+          </p>
+
+          <p class="text-sm text-gray-500 mt-1"><%= session.Address %></p>
+        </div>
+        <span class="session-toggle-arrow text-gray-400 text-sm shrink-0 mt-1 <%= startOpen ? 'rotate-180' : '' %>">▼</span>
+      </button>
+
+      <div id="session-body-<%= session.SessionID %>" class="<%= startOpen ? '' : 'hidden' %> border-t px-4 py-4">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <button id="formation-add-button-<%= session.SessionID %>" class="text-xs text-blue-600 hover:underline cursor-pointer">
+            + Add a team to this session
+          </button>
+          <% if (f.length === 0) { %>
+          <form method="POST" action="/teamformations/sessions/<%= session.SessionID %>/delete"
+                onsubmit="return confirm('Delete this session?');">
+            <button type="submit" class="px-2 py-0.5 text-[10px] rounded bg-red-600 text-white hover:bg-red-700 cursor-pointer">
+              Delete session
+            </button>
+          </form>
+          <% } %>
+        </div>
+
+        <% if (f.length === 0) { %>
+        <p class="text-sm text-gray-400 italic">
+          Nothing to show — no team formation has been created for this session.
+        </p>
+        <% } %>
+
+        <div id="formation-add-modal-<%= session.SessionID %>" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm text-left">
+            <div class="flex justify-between items-start mb-4">
+              <h2 class="text-xl font-bold">Add Team Formation</h2>
+              <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('formation-add-modal-<%= session.SessionID %>').classList.add('hidden')">
+                🗙
+              </button>
+            </div>
+            <p class="text-sm text-gray-500 mb-3">
+              <%= session.SessionDateLabel %> at <%= session.SessionTime %>
+            </p>
+            <form class="space-y-3" method="POST" action="/teamformations/sessions/<%= session.SessionID %>/formations">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Team</label>
+                <select name="teamId" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                  <option value="" disabled selected>Select a team</option>
+                  <% teams.forEach(function(t) { %>
+                  <option value="<%= t.TeamID %>"><%= t.Name %> — <%= t.LocationName %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Head coach</label>
+                <select name="headCoachId" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                  <option value="" disabled selected>Select a coach</option>
+                  <% coaches.forEach(function(c) { %>
+                  <option value="<%= c.PersonnelID %>"><%= c.LastName %>, <%= c.FirstName %> (<%= c.Role %>)</option>
+                  <% }); %>
+                </select>
+              </div>
+              <p class="text-xs text-gray-500">A team can only appear once in a session.</p>
+              <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+                Add Formation
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <% f.forEach(function(formation) { %>
+          <div class="border border-gray-200 rounded-md">
+            <div class="p-3 border-b border-gray-100">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="font-semibold text-sm">
+                    <%= formation.TeamName %>
+                    <span class="text-xs text-gray-400 font-normal">(<%= formation.TeamGender %>)</span>
+                  </p>
+                  <p class="text-xs text-gray-500"><%= formation.LocationName %></p>
+                </div>
+                <% if (isGame) { %>
+                <span class="shrink-0 px-2 py-0.5 text-sm font-bold rounded <%= formation.Score === null ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-gray-800' %>">
+                  <%= formation.Score === null ? '–' : formation.Score %>
+                </span>
+                <% } %>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">
+                Head coach:
+                <span class="text-gray-700"><%= formation.HeadCoach || 'Unassigned' %></span>
+              </p>
+              <div class="mt-2 flex gap-2">
+                <button id="formation-edit-button-<%= formation.FormationID %>" class="px-1.5 py-0.5 text-[10px] rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+                  Edit
+                </button>
+                <form method="POST" action="/teamformations/formations/<%= formation.FormationID %>/delete"
+                      onsubmit="return confirm(<%= JSON.stringify('Delete the ' + formation.TeamName + ' formation? Its ' + formation.Players.length + ' player assignment(s) go with it.') %>);">
+                  <button type="submit" class="px-1.5 py-0.5 text-[10px] rounded bg-red-600 text-white hover:bg-red-700 cursor-pointer">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div id="formation-edit-modal-<%= formation.FormationID %>" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm text-left">
+                <div class="flex justify-between items-start mb-4">
+                  <h2 class="text-xl font-bold">Edit Formation</h2>
+                  <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('formation-edit-modal-<%= formation.FormationID %>').classList.add('hidden')">
+                    🗙
+                  </button>
+                </div>
+                <p class="text-sm text-gray-500 mb-3">
+                  <%= formation.TeamName %> — <%= session.SessionDateLabel %>
+                </p>
+                <form class="space-y-3" method="POST" action="/teamformations/formations/<%= formation.FormationID %>/edit">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Head coach</label>
+                    <select name="headCoachId" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                      <% coaches.forEach(function(c) { %>
+                      <option value="<%= c.PersonnelID %>" <%= (c.FirstName + ' ' + c.LastName) === formation.HeadCoach ? 'selected' : '' %>>
+                        <%= c.LastName %>, <%= c.FirstName %>
+                      </option>
+                      <% }); %>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Score</label>
+                    <input type="number" min="0" step="1" name="score" value="<%= formation.Score === null ? '' : formation.Score %>" class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <p class="text-xs text-gray-500 mt-1">Leave blank if the game has not been played.</p>
+                  </div>
+                  <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+                    Save Changes
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div class="p-3">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-semibold text-gray-600">
+                  Players (<%= formation.Players.length %>)
+                </p>
+                <button id="assignment-add-button-<%= formation.FormationID %>" class="text-xs text-blue-600 hover:underline cursor-pointer">
+                  + Assign
+                </button>
+              </div>
+              <% if (formation.Players.length === 0) { %>
+              <p class="text-xs text-gray-400 italic">No players assigned.</p>
+              <% } else { %>
+              <table class="w-full text-xs">
+                <tbody>
+                  <% formation.Players.forEach(function(player) { %>
+                  <tr class="border-t border-gray-100">
+                    <td class="py-1 pr-2"><%= player.FirstName %> <%= player.LastName %></td>
+                    <td class="py-1 text-right whitespace-nowrap">
+                      <!-- Role is a submit-on-change select: editing a role is
+                           the only edit this page allows, so a separate modal
+                           would be more clicks for no gain. -->
+                      <form method="POST" class="inline-flex items-center gap-1"
+                            action="/teamformations/<%= formation.FormationID %>/assignments/<%= player.MembershipNumber %>/edit">
+                        <select name="role" class="assignment-role-select border-gray-300 rounded text-xs py-0.5 pl-1 pr-5">
+                          <% roles.forEach(function(r) { %>
+                          <option value="<%= r %>" <%= r === player.Role ? 'selected' : '' %>><%= r %></option>
+                          <% }); %>
+                        </select>
+                        <noscript><button type="submit" class="text-[10px] text-blue-600">Save</button></noscript>
+                      </form>
+                    </td>
+                    <td class="py-1 pl-1 text-right">
+                      <form method="POST"
+                            action="/teamformations/<%= formation.FormationID %>/assignments/<%= player.MembershipNumber %>/delete"
+                            onsubmit="return confirm('Remove ' + <%= JSON.stringify(player.FirstName + ' ' + player.LastName) %> + ' from this formation?');">
+                        <button type="submit" class="px-1.5 py-0.5 text-[10px] rounded bg-red-600 text-white hover:bg-red-700 cursor-pointer">
+                          Remove
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+              <% } %>
+            </div>
+
+            <%
+              // Only players with an open PlaysFor spell for this team, minus
+              // anyone already in this formation.
+              const assigned = formation.Players.map(function(p) { return p.MembershipNumber; });
+              const squad = (playersByTeam[formation.TeamID] || [])
+                .filter(function(p) { return assigned.indexOf(p.MembershipNumber) === -1; });
+            %>
+            <div id="assignment-add-modal-<%= formation.FormationID %>" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm text-left">
+                <div class="flex justify-between items-start mb-4">
+                  <h2 class="text-xl font-bold">Assign Player</h2>
+                  <button type="button" class="text-gray-500 hover:text-gray-700" onclick="document.getElementById('assignment-add-modal-<%= formation.FormationID %>').classList.add('hidden')">
+                    🗙
+                  </button>
+                </div>
+                <p class="text-sm text-gray-500 mb-3">
+                  <%= formation.TeamName %> — <%= session.SessionDateLabel %> at <%= session.SessionTime %>
+                </p>
+                <% if (squad.length === 0) { %>
+                <p class="text-sm text-gray-400 italic">
+                  Every player on this team is already assigned to this formation.
+                </p>
+                <% } else { %>
+                <form class="space-y-3" method="POST" action="/teamformations/<%= formation.FormationID %>/assignments">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Player</label>
+                    <select name="membershipNumber" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                      <option value="" disabled selected>Select a player</option>
+                      <% squad.forEach(function(p) { %>
+                      <option value="<%= p.MembershipNumber %>"><%= p.LastName %>, <%= p.FirstName %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Role</label>
+                    <select name="role" required class="p-2 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                      <% roles.forEach(function(r) { %>
+                      <option value="<%= r %>"><%= r %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+                  <p class="text-xs text-gray-500">
+                    Rejected if this player is already in another formation less
+                    than three hours away on the same day.
+                  </p>
+                  <button type="submit" class="px-3 py-1 font-semibold text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+                    Assign
+                  </button>
+                </form>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+    <% }); %>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

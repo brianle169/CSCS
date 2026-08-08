@@ -1,9 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-  // This file is shared across pages (Locations, Personnels, ...), so every
-  // lookup below is guarded with an "if it exists on this page" check —
-  // otherwise a page missing one of these elements would throw and stop the
-  // rest of the script from running.
-
   // --- Locations page ---
   const addLocationButton = document.getElementById("location-add-button");
   const locationAddModal = document.getElementById("location-add-modal");
@@ -153,13 +148,9 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-  // --- Add Club Member: the guardian section, shown only for minors ---
-  // Major/Minor is decided by date of birth on the server, so this mirrors that
-  // rule client-side to decide what the form shows. It also owns the `required`
-  // flags: a required field inside a hidden block makes the browser refuse to
-  // submit with an unfocusable-control error, so `required` is only ever set on
-  // fields that are actually visible.
-  const guardianSection = document.getElementById("clubmember-guardian-section");
+  const guardianSection = document.getElementById(
+    "clubmember-guardian-section",
+  );
   const memberDobInput = document.querySelector(
     "#clubmember-add-form input[name='dateOfBirth']",
   );
@@ -172,7 +163,10 @@ document.addEventListener("DOMContentLoaded", function () {
       const today = new Date();
       let age = today.getFullYear() - dob.getFullYear();
       const monthDiff = today.getMonth() - dob.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < dob.getDate())
+      ) {
         age--;
       }
       return age;
@@ -201,8 +195,6 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
 
-      // Relationship lives outside the new-person block: always required for a
-      // minor, whichever mode the slot is in.
       guardianSection
         .querySelectorAll("select[data-req]")
         .forEach(function (field) {
@@ -235,6 +227,91 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
+  // --- Family Members page: live filtering ---
+  // Filters the rows already rendered rather than round-tripping to the server.
+  // The whole roster is on the page, so this stays instant.
+  const familyFilterForm = document.getElementById("familymember-filter");
+  const familyNameInput = document.getElementById("filter-name");
+  const familyPhoneInput = document.getElementById("filter-phone-number");
+  const familyEmailInput = document.getElementById("filter-email");
+
+  if (
+    familyFilterForm &&
+    familyNameInput &&
+    familyPhoneInput &&
+    familyEmailInput
+  ) {
+    const familyRows = Array.from(
+      document.querySelectorAll(".familymember-row"),
+    );
+    const noMatchesRow = document.getElementById("familymember-no-matches");
+    const filterCount = document.getElementById("familymember-filter-count");
+    const clearButton = document.getElementById("familymember-filter-clear");
+
+    // French-accent removal
+    const fold = function (value) {
+      return (value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    };
+
+    // consistent phone number
+    const digitsOnly = function (value) {
+      return (value || "").replace(/\D/g, "");
+    };
+
+    const applyFamilyFilter = function () {
+      const name = fold(familyNameInput.value);
+      const phone = digitsOnly(familyPhoneInput.value);
+      const email = fold(familyEmailInput.value);
+      let shown = 0;
+
+      familyRows.forEach(function (row) {
+        const matches =
+          fold(row.dataset.name).includes(name) &&
+          (phone === "" || digitsOnly(row.dataset.phone).includes(phone)) &&
+          fold(row.dataset.email).includes(email);
+        row.classList.toggle("hidden", !matches);
+        if (matches) shown++;
+      });
+
+      if (noMatchesRow) {
+        noMatchesRow.classList.toggle("hidden", shown > 0);
+      }
+      if (filterCount) {
+        filterCount.textContent =
+          shown === familyRows.length
+            ? `${familyRows.length} family member${familyRows.length === 1 ? "" : "s"}`
+            : `${shown} of ${familyRows.length} family members`;
+      }
+    };
+
+    [familyNameInput, familyPhoneInput, familyEmailInput].forEach(
+      function (input) {
+        input.addEventListener("input", applyFamilyFilter);
+      },
+    );
+
+    familyFilterForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      applyFamilyFilter();
+    });
+
+    if (clearButton) {
+      clearButton.addEventListener("click", function () {
+        familyNameInput.value = "";
+        familyPhoneInput.value = "";
+        familyEmailInput.value = "";
+        applyFamilyFilter();
+      });
+    }
+
+    // Sets the initial count.
+    applyFamilyFilter();
+  }
+
   // --- Family Members page ---
   document
     .querySelectorAll("button[id^='familymember-edit-button-']")
@@ -263,6 +340,75 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
     });
+
+  // --- Team Formations: create a session ---
+  const sessionAddButton = document.getElementById("session-add-button");
+  const sessionAddModal = document.getElementById("session-add-modal");
+  if (sessionAddButton && sessionAddModal) {
+    sessionAddButton.addEventListener("click", function () {
+      sessionAddModal.classList.toggle("hidden");
+    });
+  }
+
+  // --- Team Formations: add a team to a session, edit a formation ---
+  [
+    ["formation-add-button-", "formation-add-modal-"],
+    ["formation-edit-button-", "formation-edit-modal-"],
+  ].forEach(function (pair) {
+    document
+      .querySelectorAll(`button[id^='${pair[0]}']`)
+      .forEach(function (button) {
+        const id = button.getAttribute("id").split("-").pop();
+        const modal = document.getElementById(`${pair[1]}${id}`);
+        if (modal) {
+          button.addEventListener("click", function (event) {
+            event.stopPropagation();
+            modal.classList.toggle("hidden");
+          });
+        }
+      });
+  });
+
+  // --- Team Formations: assign a player ---
+  document
+    .querySelectorAll("button[id^='assignment-add-button-']")
+    .forEach(function (button) {
+      const formationId = button.getAttribute("id").split("-").pop();
+      const modal = document.getElementById(
+        `assignment-add-modal-${formationId}`,
+      );
+      if (modal) {
+        button.addEventListener("click", function (event) {
+          // The button sits inside the session's collapsible header region;
+          // without this the click would also toggle the session shut.
+          event.stopPropagation();
+          modal.classList.toggle("hidden");
+        });
+      }
+    });
+
+  document
+    .querySelectorAll("select.assignment-role-select")
+    .forEach(function (select) {
+      select.addEventListener("change", function () {
+        select.form.submit();
+      });
+    });
+
+  // --- Team Formations page ---
+  document.querySelectorAll(".session-toggle").forEach(function (button) {
+    const sessionId = button.getAttribute("id").split("-").pop();
+    const body = document.getElementById(`session-body-${sessionId}`);
+    const arrow = button.querySelector(".session-toggle-arrow");
+    if (body) {
+      button.addEventListener("click", function () {
+        body.classList.toggle("hidden");
+        if (arrow) {
+          arrow.classList.toggle("rotate-180");
+        }
+      });
+    }
+  });
 
   // --- Reports page ---
   document.querySelectorAll(".report-toggle").forEach(function (button) {
