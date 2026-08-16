@@ -1,11 +1,17 @@
 import express from "express";
 import path from "path";
+import cron from "node-cron";
 import locationsRoute from "./routes/locationsRoute.js";
 import personnelsRoute from "./routes/personnelsRoute.js";
 import familyMembersRoute from "./routes/familymembers.js";
 import clubMembersRoute from "./routes/clubmembers.js";
 import teamFormationsRoute from "./routes/teamformations.js";
 import reportsRoute from "./routes/reports.js";
+import emailsRoute from "./routes/emailsRoute.js";
+import { runWeeklyEmailJob } from "./db/emails.js";
+import { getLocationCount } from "./db/locations.js";
+import { getActivePersonnelCount } from "./db/personnel.js";
+import { getActiveClubMemberCount, getTeamCount } from "./db/clubMembers.js";
 
 const app = express();
 const port = 3000;
@@ -20,9 +26,28 @@ app.use("/familymembers", familyMembersRoute);
 app.use("/clubmembers", clubMembersRoute);
 app.use("/teamformations", teamFormationsRoute);
 app.use("/reports", reportsRoute);
+app.use("/emails", emailsRoute);
 
-app.get("/", (req, res) => {
-  res.render("pages/home-page");
+app.get("/", async (req, res) => {
+  const [locationCount, activeMemberCount, personnelCount, teamCount] =
+    await Promise.all([
+      getLocationCount(),
+      getActiveClubMemberCount(),
+      getActivePersonnelCount(),
+      getTeamCount(),
+    ]);
+  res.render("pages/home-page", {
+    locationCount,
+    activeMemberCount,
+    personnelCount,
+    teamCount,
+  });
+});
+
+cron.schedule("0 8 * * 0", () => {
+  runWeeklyEmailJob().catch((err) =>
+    console.error("Scheduled weekly email job failed:", err),
+  );
 });
 
 app.listen(port, () => {

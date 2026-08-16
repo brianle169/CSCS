@@ -424,4 +424,19 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
   });
+
+  // --- Emails page: expand a logged row to show its full body ---
+  document
+    .querySelectorAll(".email-log-view-toggle")
+    .forEach(function (button) {
+      const row = document.getElementById(button.dataset.target);
+      if (row) {
+        button.addEventListener("click", function () {
+          row.classList.toggle("hidden");
+          button.textContent = row.classList.contains("hidden")
+            ? "View full email"
+            : "Hide full email";
+        });
+      }
+    });
 });

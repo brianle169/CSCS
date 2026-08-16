@@ -1,7 +1,7 @@
 import db from "./pool.js";
 import { attachGuardian } from "./guardians.js";
 
-// Annual membership fee, per the club's rules — not stored in the schema
+// Annual membership fee, per the club's rules, not stored in the schema
 // anywhere, so it lives here as the single source of truth for both the
 // club-members display (fee/active status) and payment validation.
 const MEMBERSHIP_FEES = { Major: 200, Minor: 100 };
@@ -26,23 +26,19 @@ export async function getClubMembersWithLocationsAndTeams() {
         "cm.SSN AS SSN, cm.MedicareCardNumber AS MedicareCardNumber, " +
         "cm.PhoneNumber AS PhoneNumber, cm.Email AS Email, cm.Address AS Address, cm.City AS City, " +
         "cm.Province AS Province, cm.PostalCode AS PostalCode, " +
-        "CASE WHEN mj.MembershipNumber IS NOT NULL THEN 'Major' ELSE 'Minor' END AS MemberType, " +
+        "CASE WHEN cm.MembershipNumber IS NULL THEN NULL " +
+        "     WHEN mj.MembershipNumber IS NOT NULL THEN 'Major' ELSE 'Minor' END AS MemberType, " +
         "(SELECT COALESCE(SUM(p.Amount), 0) FROM `Payments` p WHERE p.MembershipNumber = cm.MembershipNumber AND p.MembershipYear = YEAR(CURDATE())) AS CurrentYearPaid, " +
         "(SELECT COALESCE(SUM(p.Amount), 0) FROM `Payments` p WHERE p.MembershipNumber = cm.MembershipNumber AND p.MembershipYear = YEAR(CURDATE()) - 1) AS PreviousYearPaid " +
-        "FROM `ClubMembers` cm " +
-        "JOIN `PlaysFor` pf ON pf.MembershipNumber = cm.MembershipNumber AND pf.EndDate IS NULL " +
-        "JOIN `Teams` t ON pf.TeamID = t.TeamID " +
+        "FROM `Teams` t " +
         "JOIN `Locations` l ON t.LocationID = l.LocationID " +
+        "LEFT JOIN `PlaysFor` pf ON pf.TeamID = t.TeamID AND pf.EndDate IS NULL " +
+        "LEFT JOIN `ClubMembers` cm ON cm.MembershipNumber = pf.MembershipNumber " +
         "LEFT JOIN `MajorMembers` mj ON cm.MembershipNumber = mj.MembershipNumber " +
         "LEFT JOIN `MinorMembers` mn ON cm.MembershipNumber = mn.MembershipNumber " +
         "ORDER BY l.Name, t.Name",
     );
 
-    // Transform the flat rows into Location -> Team -> {Major, Minor} groups.
-    // Note: team membership now lives in PlaysFor, and the JOIN above only
-    // keeps the OPEN spell (EndDate IS NULL). A member with no current team —
-    // never assigned, or whose last spell was closed — is silently excluded,
-    // the same behaviour the nullable ClubMembers.TeamID used to give.
     const groupedResults = results.reduce((acc, row) => {
       if (!acc[row.LocationID]) {
         acc[row.LocationID] = {
@@ -63,6 +59,11 @@ export async function getClubMembersWithLocationsAndTeams() {
         };
       }
       const team = location.Teams[row.TeamID];
+
+      // The LEFT JOIN yields one all-null member row for a team with nobody
+      // currently on it — leave Major/Minor empty rather than build a member
+      // out of nulls.
+      if (row.MembershipNumber === null) return acc;
 
       const fee = MEMBERSHIP_FEES[row.MemberType];
 
@@ -114,9 +115,37 @@ export async function getTeams() {
   }
 }
 
-// Major/Minor status (per the club's rules: 18+ is Major, 4-17 is Minor) is
-// derived from date of birth, not a field the user picks — this computes it
-// the same way both addClubMember and editClubMember need it.
+export async function getTeamCount() {
+  try {
+    const [[{ n }]] = await db.execute("SELECT COUNT(*) AS n FROM `Teams`");
+    return n;
+  } catch (err) {
+    console.error("Error counting teams:", err);
+    return 0;
+  }
+}
+
+export async function getActiveClubMemberCount() {
+  try {
+    const [[{ n }]] = await db.execute(
+      "SELECT COUNT(*) AS n FROM `ClubMembers` cm " +
+        "LEFT JOIN `MajorMembers` mj ON mj.MembershipNumber = cm.MembershipNumber " +
+        "LEFT JOIN (" +
+        "  SELECT MembershipNumber, SUM(Amount) AS PreviousYearPaid " +
+        "  FROM `Payments` WHERE MembershipYear = YEAR(CURDATE()) - 1 " +
+        "  GROUP BY MembershipNumber" +
+        ") py ON py.MembershipNumber = cm.MembershipNumber " +
+        "WHERE COALESCE(py.PreviousYearPaid, 0) >= " +
+        "  CASE WHEN mj.MembershipNumber IS NOT NULL THEN ? ELSE ? END",
+      [MEMBERSHIP_FEES.Major, MEMBERSHIP_FEES.Minor],
+    );
+    return n;
+  } catch (err) {
+    console.error("Error counting active club members:", err);
+    return 0;
+  }
+}
+
 function calculateAge(dateOfBirth) {
   const dob = new Date(dateOfBirth);
   const today = new Date();
@@ -140,10 +169,6 @@ export async function addClubMember(data) {
     );
   }
 
-  // Minors cannot exist without guardians, so the club rule is enforced here at
-  // registration rather than left for someone to satisfy afterwards: two
-  // guardians, the first primary and the second secondary. Majors never take
-  // guardians, so anything submitted for them is ignored.
   const isMinor = age < 18;
   const guardians = isMinor ? data.guardians || [] : [];
 
@@ -308,9 +333,6 @@ export async function editClubMember(membershipNumber, data) {
       ],
     );
 
-    // Changing a team is now a change to the member's HISTORY, not an
-    // overwrite: close the spell they're in and open a new one, so PlaysFor
-    // still answers "who played for this team, when".
     const [openSpells] = await connection.execute(
       "SELECT TeamID, DATE_FORMAT(StartDate, '%Y-%m-%d') AS StartDate, StartDate = CURDATE() AS StartedToday " +
         "FROM `PlaysFor` WHERE MembershipNumber = ? AND EndDate IS NULL " +
@@ -321,22 +343,17 @@ export async function editClubMember(membershipNumber, data) {
     const newTeamId = Number(data.teamId);
 
     if (!currentSpell) {
-      // No open spell (never assigned, or the last one was closed) — start one.
       await connection.execute(
         "INSERT INTO `PlaysFor` (MembershipNumber, StartDate, TeamID, EndDate) VALUES (?, CURDATE(), ?, NULL)",
         [membershipNumber, newTeamId],
       );
     } else if (currentSpell.TeamID !== newTeamId) {
       if (Number(currentSpell.StartedToday) === 1) {
-        // The current spell began today, so this is someone fixing a mistake
-        // they just made, not a real transfer. Rewrite it in place — opening a
-        // second spell today would collide on PK (MembershipNumber, StartDate).
         await connection.execute(
           "UPDATE `PlaysFor` SET TeamID = ? WHERE MembershipNumber = ? AND StartDate = ?",
           [newTeamId, membershipNumber, currentSpell.StartDate],
         );
       } else {
-        // A genuine transfer: close the old spell as of today and open the new.
         await connection.execute(
           "UPDATE `PlaysFor` SET EndDate = CURDATE() WHERE MembershipNumber = ? AND StartDate = ?",
           [membershipNumber, currentSpell.StartDate],
