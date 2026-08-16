@@ -88,23 +88,22 @@ async function findAlreadyLogged(pairs) {
     `SELECT Receiver, Subject FROM \`EmailLogs\` WHERE (Receiver, Subject) IN (${placeholders})`,
     params,
   );
-  return new Set(rows.map((row) => JSON.stringify([row.Receiver, row.Subject])));
-}
-
-async function logEmail({ sentAt, senderLocationId, receiver, subject, body }) {
-  // The spec's log only keeps the first 100 characters of the body.
-  const bodySnippet = body.slice(0, 100);
-  await db.execute(
-    "INSERT INTO `EmailLogs` (SentAt, SenderLocationID, Receiver, Subject, BodySnippet) " +
-      "VALUES (?, ?, ?, ?, ?)",
-    [sentAt, senderLocationId, receiver, subject, bodySnippet],
+  return new Set(
+    rows.map((row) => JSON.stringify([row.Receiver, row.Subject])),
   );
 }
 
-// Generates, "sends" (see lib/mailer.js) and logs every email for the
-// coming week. Safe to call more than once for the same week — a
-// (receiver, subject) pair that's already logged is skipped rather than
-// duplicated, since subject already encodes the team/date/time.
+async function logEmail({ sentAt, senderLocationId, receiver, subject, body }) {
+  const bodySnippet = body.slice(0, 100);
+  await db.execute(
+    "INSERT INTO `EmailLogs` (SentAt, SenderLocationID, Receiver, Subject, BodySnippet, Body) " +
+      "VALUES (?, ?, ?, ?, ?, ?)",
+    [sentAt, senderLocationId, receiver, subject, bodySnippet, body],
+  );
+}
+
+// Generates, sends and logs every email for the
+// coming week.
 export async function runWeeklyEmailJob(referenceISODate) {
   const { weekStart, weekEnd } = getComingWeekRange(referenceISODate);
   const rows = await getUpcomingSessionEmails(weekStart, weekEnd);
@@ -161,8 +160,10 @@ export async function runWeeklyEmailJob(referenceISODate) {
 
 export async function getEmailLogs() {
   const [rows] = await db.execute(
-    "SELECT el.LogID AS LogID, el.SentAt AS SentAt, el.Receiver AS Receiver, " +
-      "el.Subject AS Subject, el.BodySnippet AS BodySnippet, " +
+    "SELECT el.LogID AS LogID, el.SentAt AS SentAt, " +
+      "DATE_FORMAT(el.SentAt, '%b %e, %Y %l:%i %p') AS SentAtLabel, " +
+      "el.Receiver AS Receiver, " +
+      "el.Subject AS Subject, el.BodySnippet AS BodySnippet, el.Body AS Body, " +
       "l.Name AS SenderLocationName " +
       "FROM `EmailLogs` el " +
       "JOIN `Locations` l ON l.LocationID = el.SenderLocationID " +
