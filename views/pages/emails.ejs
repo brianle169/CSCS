@@ -1,0 +1,95 @@
+<%- include('../partials/header', { title: "Emails" }) %>
+<main class="p-8 max-w-6xl w-full mx-auto grow">
+  <h1 class="text-2xl font-bold mb-2">Weekly Session Emails</h1>
+  <p class="text-sm text-gray-500 mb-6">
+    Every Sunday the system emails each club member assigned to a session in the
+    coming week, and logs every email it sends. Use the button below to run that
+    job on demand instead of waiting for an actual Sunday.
+  </p>
+
+  <div class="bg-white rounded-lg shadow p-4 mb-8">
+    <form method="POST" action="/emails/run" class="flex flex-wrap items-end gap-3">
+      <div>
+        <label class="block text-xs font-medium text-gray-700">Reference date</label>
+        <input type="date" name="referenceDate" class="p-1.5 mt-1 border-gray-300 rounded-md shadow-sm text-sm">
+        <p class="text-xs text-gray-400 mt-1">Defaults to today. Emails go out for sessions in the 7 days after this date.</p>
+      </div>
+      <button type="submit" class="px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">
+        Run this week's emails now
+      </button>
+    </form>
+
+    <% if (error) { %>
+    <p class="text-sm text-red-600 mt-3"><%= error %></p>
+    <% } %>
+
+    <% if (run) { %>
+    <div class="mt-4 border-t pt-4">
+      <p class="text-sm text-gray-700">
+        Window <span class="font-medium"><%= run.weekStart %></span> to
+        <span class="font-medium"><%= run.weekEnd %></span>:
+        <%= run.results.length %> email<%= run.results.length === 1 ? '' : 's' %> processed
+        <% if (run.skippedNoEmail > 0) { %>
+        (<%= run.skippedNoEmail %> assignment<%= run.skippedNoEmail === 1 ? '' : 's' %> skipped, member has no email on file)
+        <% } %>.
+      </p>
+
+      <% if (run.results.length === 0) { %>
+      <p class="text-sm text-gray-400 italic mt-2">No sessions with assigned players fall in that week.</p>
+      <% } %>
+
+      <div class="space-y-2 mt-3">
+        <% run.results.forEach(function(item) { %>
+        <details class="border rounded">
+          <summary class="px-3 py-2 text-sm cursor-pointer flex justify-between gap-4">
+            <span><%= item.subject %></span>
+            <span class="shrink-0 text-xs font-medium <%= item.status === 'sent' ? 'text-green-600' : 'text-gray-400' %>">
+              <%= item.status === 'sent' ? 'sent' : 'already logged' %>
+            </span>
+          </summary>
+          <div class="px-3 pb-3 text-sm">
+            <p class="text-gray-500">To: <%= item.row.MemberEmail %></p>
+            <pre class="whitespace-pre-wrap font-sans text-gray-800 mt-1"><%= item.body %></pre>
+            <% if (item.previewUrl) { %>
+            <a href="<%= item.previewUrl %>" target="_blank" class="text-blue-600 hover:underline text-xs">View sent message (Ethereal preview) ↗</a>
+            <% } %>
+          </div>
+        </details>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+  </div>
+
+  <h2 class="text-xl font-bold mb-3">Email Log</h2>
+  <% if (!logs || logs.length === 0) { %>
+  <p class="text-sm text-gray-400 italic">No emails have been logged yet.</p>
+  <% } else { %>
+  <div class="overflow-x-auto bg-white rounded-lg shadow">
+    <table class="w-full text-sm border-collapse">
+      <thead>
+        <tr class="bg-gray-50 text-left text-gray-600">
+          <th class="px-3 py-2 font-medium border-b whitespace-nowrap">Sent At</th>
+          <th class="px-3 py-2 font-medium border-b whitespace-nowrap">Sender (Location)</th>
+          <th class="px-3 py-2 font-medium border-b whitespace-nowrap">Receiver</th>
+          <th class="px-3 py-2 font-medium border-b">Subject</th>
+          <th class="px-3 py-2 font-medium border-b">Body (first 100 chars)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% logs.forEach(function(log) { %>
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 border-b whitespace-nowrap"><%= log.SentAt %></td>
+          <td class="px-3 py-2 border-b whitespace-nowrap"><%= log.SenderLocationName %></td>
+          <td class="px-3 py-2 border-b whitespace-nowrap"><%= log.Receiver %></td>
+          <td class="px-3 py-2 border-b"><%= log.Subject %></td>
+          <td class="px-3 py-2 border-b text-gray-500"><%= log.BodySnippet %></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</main>
+
+<%- include('../partials/footer') %>
