@@ -9,6 +9,19 @@ export async function getPersonnels() {
   }
 }
 
+// Counts personnel currently active at a location
+export async function getActivePersonnelCount() {
+  try {
+    const [[{ n }]] = await db.execute(
+      "SELECT COUNT(DISTINCT PersonnelID) AS n FROM `WorksAt` WHERE EndDate IS NULL",
+    );
+    return n;
+  } catch (err) {
+    console.error("Error counting active personnel:", err);
+    return 0;
+  }
+}
+
 export async function getPersonnelsWithLocations() {
   try {
     const [results, fields] = await db.execute(

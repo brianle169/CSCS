@@ -10,6 +10,18 @@ export async function getLocations() {
   }
 }
 
+export async function getLocationCount() {
+  try {
+    const [[{ n }]] = await db.execute(
+      "SELECT COUNT(*) AS n FROM `Locations`",
+    );
+    return n;
+  } catch (err) {
+    console.error("Error counting locations:", err);
+    return 0;
+  }
+}
+
 export async function addLocation(data) {
   if (!data) {
     throw new Error("No data provided for adding location");

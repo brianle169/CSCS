@@ -9,6 +9,9 @@ import teamFormationsRoute from "./routes/teamformations.js";
 import reportsRoute from "./routes/reports.js";
 import emailsRoute from "./routes/emailsRoute.js";
 import { runWeeklyEmailJob } from "./db/emails.js";
+import { getLocationCount } from "./db/locations.js";
+import { getActivePersonnelCount } from "./db/personnel.js";
+import { getActiveClubMemberCount, getTeamCount } from "./db/clubMembers.js";
 
 const app = express();
 const port = 3000;
@@ -25,8 +28,20 @@ app.use("/teamformations", teamFormationsRoute);
 app.use("/reports", reportsRoute);
 app.use("/emails", emailsRoute);
 
-app.get("/", (req, res) => {
-  res.render("pages/home-page");
+app.get("/", async (req, res) => {
+  const [locationCount, activeMemberCount, personnelCount, teamCount] =
+    await Promise.all([
+      getLocationCount(),
+      getActiveClubMemberCount(),
+      getActivePersonnelCount(),
+      getTeamCount(),
+    ]);
+  res.render("pages/home-page", {
+    locationCount,
+    activeMemberCount,
+    personnelCount,
+    teamCount,
+  });
 });
 
 cron.schedule("0 8 * * 0", () => {
