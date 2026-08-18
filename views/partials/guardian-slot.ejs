@@ -1,12 +1,9 @@
 <%
-  // One guardian slot in the add-member form. `n` (1 or 2) namespaces every
-  // field so the two slots submit as guardian1* / guardian2*, which
-  // routes/clubmembers.js folds back into an array.
+  // One guardian slot. `n` (1 or 2) namespaces fields as guardian1*/guardian2*,
+  // folded into an array by routes/clubmembers.js.
   //
-  // No `required` attributes in the markup: this whole block is hidden for
-  // major members, and a hidden required field makes the browser refuse to
-  // submit with an unfocusable-control error. eventListeners.js sets the
-  // required flag on [data-req] fields only while they are visible.
+  // No `required` in markup: a hidden required field blocks submit.
+  // eventListeners.js sets it on [data-req] fields only while visible.
 %>
 <div class="guardian-slot border border-gray-200 rounded-md p-3">
   <h4 class="text-sm font-semibold text-gray-700 mb-2">

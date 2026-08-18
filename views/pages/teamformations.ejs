@@ -63,13 +63,11 @@
   <div class="space-y-3">
     <% sessions.forEach(function(session, index) { %>
     <%
-      // The most recent session is the one you almost always want, so it starts
-      // expanded and everything below it starts collapsed.
+      // Most recent session starts expanded; the rest start collapsed.
       const startOpen = index === 0;
       const f = session.Formations;
       const isGame = session.Nature === 'Game';
-      // A game is two teams facing each other, so the header can show the
-      // fixture — and the score once it has been recorded.
+      // A game's header can show the fixture and score.
       const hasFixture = isGame && f.length === 2;
       const scored = hasFixture && f[0].Score !== null && f[1].Score !== null;
     %>
@@ -254,9 +252,7 @@
                   <tr class="border-t border-gray-100">
                     <td class="py-1 pr-2"><%= player.FirstName %> <%= player.LastName %></td>
                     <td class="py-1 text-right whitespace-nowrap">
-                      <!-- Role is a submit-on-change select: editing a role is
-                           the only edit this page allows, so a separate modal
-                           would be more clicks for no gain. -->
+                      <!-- Submit-on-change: a modal would be extra clicks for no gain. -->
                       <form method="POST" class="inline-flex items-center gap-1"
                             action="/teamformations/<%= formation.FormationID %>/assignments/<%= player.MembershipNumber %>/edit">
                         <select name="role" class="assignment-role-select border-gray-300 rounded text-xs py-0.5 pl-1 pr-5">
@@ -284,8 +280,7 @@
             </div>
 
             <%
-              // Only players with an open PlaysFor spell for this team, minus
-              // anyone already in this formation.
+              // Players with an open PlaysFor spell, minus those already assigned.
               const assigned = formation.Players.map(function(p) { return p.MembershipNumber; });
               const squad = (playersByTeam[formation.TeamID] || [])
                 .filter(function(p) { return assigned.indexOf(p.MembershipNumber) === -1; });

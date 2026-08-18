@@ -1,19 +1,13 @@
 import db from "./pool.js";
 
-// Guardianship lives across three tables — FamilyMembers (the person),
-// GuardianOf (the dated link to a minor, carrying Primary/Secondary), and
-// LocatedAt (which branch a new guardian is registered at) — so every write
-// here runs in a transaction.
+// Guardianship spans FamilyMembers, GuardianOf, and LocatedAt, so writes here
+// run in a transaction.
 //
-// Two club rules shape this module, and neither can be a CHECK constraint:
-//   1. A minor has exactly one ACTIVE Primary guardian. Half of this IS
-//      enforced by the schema, via the uq_guardianof_one_active_primary
-//      functional unique index, which is why promoting a guardian must demote
-//      the incumbent FIRST — MySQL checks uniqueness per statement, so the
-//      two-step order matters.
-//   2. A minor has at least two ACTIVE guardians. Nothing in the database
-//      enforces this, so endGuardianship() below is the only thing standing
-//      between the data and a minor with one guardian.
+// Two rules apply, neither enforceable by CHECK:
+//   1. One active Primary per minor. Promoting a guardian must demote the
+//      old Primary first, or the unique index rejects it.
+//   2. At least two active guardians per minor. Only endGuardianship() below
+//      enforces this.
 
 export async function getGuardiansByMinor() {
   try {
@@ -50,8 +44,7 @@ async function assertMinor(connection, membershipNumber) {
   }
 }
 
-// Demote whoever currently holds Primary for this minor. Must run BEFORE the
-// new Primary is written, or the unique index rejects the second one.
+// Demotes the current Primary. Must run before the new Primary is written.
 async function clearPrimary(connection, membershipNumber, exceptFamilyMemberId) {
   await connection.execute(
     "UPDATE `GuardianOf` SET GuardianType = 'Secondary' " +
@@ -61,14 +54,12 @@ async function clearPrimary(connection, membershipNumber, exceptFamilyMemberId) 
   );
 }
 
-// Attaches one guardian to a minor on an ALREADY-OPEN transaction. Shared by
-// the "add a guardian to an existing member" flow and by member registration,
-// which needs the guardians created in the same transaction as the member.
+// Attaches one guardian inside an already-open transaction. Shared by the
+// add-guardian flow and member registration.
 //
-// `locationId` is where a brand-new person gets registered (LocatedAt). The two
-// callers source it differently — an existing member's current BelongsTo row,
-// versus the location of the team a new member is joining — so it is passed in
-// rather than looked up here. Pass null to skip the LocatedAt row.
+// `locationId` is where a new person is registered (LocatedAt); pass null to
+// skip that row. Callers source it differently, so it's passed in rather
+// than looked up here.
 export async function attachGuardian(connection, membershipNumber, locationId, spec) {
   const guardianType = spec.guardianType === "Primary" ? "Primary" : "Secondary";
   if (!spec.relationshipType) {
@@ -89,8 +80,7 @@ export async function attachGuardian(connection, membershipNumber, locationId, s
     if (rows.length === 0) {
       throw new Error("That family member no longer exists.");
     }
-    // Re-linking someone who already guards this minor would collide on the
-    // primary key (FamilyMemberID, MembershipNumber, StartDate).
+    // Blocks re-linking an already-active guardian (would collide on the primary key).
     const [dupe] = await connection.execute(
       "SELECT FamilyMemberID FROM `GuardianOf` " +
         "WHERE FamilyMemberID = ? AND MembershipNumber = ? AND EndDate IS NULL",
@@ -124,8 +114,7 @@ export async function attachGuardian(connection, membershipNumber, locationId, s
     );
     familyMemberId = result.insertId;
 
-    // Only brand-new people get a LocatedAt row — someone being linked already
-    // has their own history there.
+    // Only new people get a LocatedAt row; linked people already have one.
     if (locationId) {
       await connection.execute(
         "INSERT INTO `LocatedAt` (FamilyMemberID, LocationID, StartDate, EndDate) VALUES (?, ?, CURDATE(), NULL)",
@@ -182,9 +171,8 @@ export async function addGuardian(membershipNumber, data) {
   }
 }
 
-// Promotion only. There is deliberately no "make secondary" — demoting the
-// primary directly would leave the minor with no primary at all, so the way to
-// change primaries is to promote someone else and let this demote the incumbent.
+// Promotion only. Demoting the Primary directly would leave none, so swap
+// by promoting someone else instead.
 export async function makePrimaryGuardian(membershipNumber, familyMemberId) {
   if (!membershipNumber || !familyMemberId) {
     throw new Error("Membership number and family member are required.");
@@ -225,8 +213,7 @@ export async function makePrimaryGuardian(membershipNumber, familyMemberId) {
   }
 }
 
-// Closes the guardianship rather than deleting it, so the history of who was
-// responsible for a minor and when survives.
+// Closes the guardianship instead of deleting it, to keep history.
 export async function endGuardianship(membershipNumber, familyMemberId) {
   if (!membershipNumber || !familyMemberId) {
     throw new Error("Membership number and family member are required.");

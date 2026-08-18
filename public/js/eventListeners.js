@@ -180,8 +180,7 @@ document.addEventListener("DOMContentLoaded", function () {
       guardianSection
         .querySelectorAll(".guardian-existing-select")
         .forEach(function (select) {
-          // An existing person is already on file, so their personal details
-          // are not asked for again.
+          // Existing person: skip asking for personal details again.
           const slot = select.closest(".guardian-slot");
           const newFields = slot
             ? slot.querySelector(".guardian-new-fields")
@@ -228,8 +227,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
   // --- Family Members page: live filtering ---
-  // Filters the rows already rendered rather than round-tripping to the server.
-  // The whole roster is on the page, so this stays instant.
+  // Filters rows already on the page; the whole roster is loaded, so it's instant.
   const familyFilterForm = document.getElementById("familymember-filter");
   const familyNameInput = document.getElementById("filter-name");
   const familyPhoneInput = document.getElementById("filter-phone-number");
@@ -379,8 +377,7 @@ document.addEventListener("DOMContentLoaded", function () {
       );
       if (modal) {
         button.addEventListener("click", function (event) {
-          // The button sits inside the session's collapsible header region;
-          // without this the click would also toggle the session shut.
+          // Prevents the click from also toggling the session shut.
           event.stopPropagation();
           modal.classList.toggle("hidden");
         });
@@ -424,19 +421,4 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
   });
-
-  // --- Emails page: expand a logged row to show its full body ---
-  document
-    .querySelectorAll(".email-log-view-toggle")
-    .forEach(function (button) {
-      const row = document.getElementById(button.dataset.target);
-      if (row) {
-        button.addEventListener("click", function () {
-          row.classList.toggle("hidden");
-          button.textContent = row.classList.contains("hidden")
-            ? "View full email"
-            : "Hide full email";
-        });
-      }
-    });
 });

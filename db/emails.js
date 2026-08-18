@@ -1,6 +1,4 @@
-// Every Sunday, for every session scheduled in the coming week, the system
-// emails each assigned club member their session details and logs the
-// email.
+// Weekly job: emails each assigned member their session details and logs it.
 import db from "./pool.js";
 import { sendGeneratedEmail } from "../lib/mailer.js";
 
@@ -13,8 +11,7 @@ function parseISODate(isoString) {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
-// "The coming week" relative to referenceISODate (default: today), as the
-// 7 days starting the day after the reference date
+// The 7 days starting the day after referenceISODate (default: today).
 export function getComingWeekRange(referenceISODate) {
   const reference = referenceISODate
     ? parseISODate(referenceISODate)
@@ -96,14 +93,13 @@ async function findAlreadyLogged(pairs) {
 async function logEmail({ sentAt, senderLocationId, receiver, subject, body }) {
   const bodySnippet = body.slice(0, 100);
   await db.execute(
-    "INSERT INTO `EmailLogs` (SentAt, SenderLocationID, Receiver, Subject, BodySnippet, Body) " +
-      "VALUES (?, ?, ?, ?, ?, ?)",
-    [sentAt, senderLocationId, receiver, subject, bodySnippet, body],
+    "INSERT INTO `EmailLogs` (SentAt, SenderLocationID, Receiver, Subject, BodySnippet) " +
+      "VALUES (?, ?, ?, ?, ?)",
+    [sentAt, senderLocationId, receiver, subject, bodySnippet],
   );
 }
 
-// Generates, sends and logs every email for the
-// coming week.
+// Generates, sends, and logs every email for the coming week.
 export async function runWeeklyEmailJob(referenceISODate) {
   const { weekStart, weekEnd } = getComingWeekRange(referenceISODate);
   const rows = await getUpcomingSessionEmails(weekStart, weekEnd);
@@ -163,7 +159,7 @@ export async function getEmailLogs() {
     "SELECT el.LogID AS LogID, el.SentAt AS SentAt, " +
       "DATE_FORMAT(el.SentAt, '%b %e, %Y %l:%i %p') AS SentAtLabel, " +
       "el.Receiver AS Receiver, " +
-      "el.Subject AS Subject, el.BodySnippet AS BodySnippet, el.Body AS Body, " +
+      "el.Subject AS Subject, el.BodySnippet AS BodySnippet, " +
       "l.Name AS SenderLocationName " +
       "FROM `EmailLogs` el " +
       "JOIN `Locations` l ON l.LocationID = el.SenderLocationID " +

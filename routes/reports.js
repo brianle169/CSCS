@@ -130,13 +130,26 @@ const REPORT_META = [
 
 reportsRoute.get("/", async (req, res) => {
   const locations = await getLocations();
+
+  // Shared across all filterable reports; each one reads only what it needs.
+  const filters = {
+    locationId: req.query.locationId || "",
+    from: req.query.from || "",
+    to: req.query.to || "",
+  };
+  const activeReportId = req.query.report ? Number(req.query.report) : null;
+
   const reports = await Promise.all(
     REPORT_META.map(async (meta) => {
-      const { columns, rows } = await meta.fn();
+      const needsFilters = meta.needsLocation || meta.needsDateRange;
+      const { columns, rows } = needsFilters
+        ? await meta.fn(filters)
+        : await meta.fn();
       return { ...meta, columns, rows };
     }),
   );
-  res.render("pages/reports", { reports, locations });
+
+  res.render("pages/reports", { reports, locations, filters, activeReportId });
 });
 
 export default reportsRoute;

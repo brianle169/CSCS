@@ -57,8 +57,7 @@
         for <%= member.FirstName %> <%= member.LastName %>
       </p>
 
-      <!-- Link an existing family member: the common case, since a parent
-           usually guards more than one child. -->
+      <!-- Link an existing person: the common case for multi-child parents. -->
       <form class="space-y-3" method="POST" action="/clubmembers/<%= member.MembershipNumber %>/guardians">
         <input type="hidden" name="mode" value="existing">
         <h3 class="text-sm font-semibold text-gray-700">Link an existing family member</h3>

@@ -1,8 +1,6 @@
 import db from "./pool.js";
 
-// This module owns a family member's PERSONAL details. Who they are guardian
-// of, and whether they are primary or secondary, is a separate concern handled
-// in db/guardians.js from the Club Members page.
+// Handles a family member's personal details only. Guardianship is in db/guardians.js.
 
 export async function getFamilyMembers() {
   try {
@@ -14,8 +12,7 @@ export async function getFamilyMembers() {
         "fm.PhoneNumber AS PhoneNumber, fm.Email AS Email, " +
         "fm.Address AS Address, fm.City AS City, fm.Province AS Province, " +
         "fm.PostalCode AS PostalCode, " +
-        // How many minors this person currently looks after — shown on the
-        // roster so it is obvious who is actively a guardian.
+        // Active ward count, shown on the roster.
         "(SELECT COUNT(*) FROM `GuardianOf` g " +
         "  WHERE g.FamilyMemberID = fm.FamilyMemberID AND g.EndDate IS NULL) AS ActiveWards " +
         "FROM `FamilyMembers` fm " +

@@ -133,9 +133,7 @@
         </div>
         <p class="text-xs text-gray-500">Major/Minor status is set automatically based on date of birth.</p>
 
-        <!-- Shown by eventListeners.js only when the date of birth makes this a
-             minor. The server re-checks: a minor cannot be registered without
-             two guardians, and guardians submitted for a major are ignored. -->
+        <!-- Shown only for minors (eventListeners.js); server re-checks guardians. -->
         <div id="clubmember-guardian-section" class="hidden space-y-3 pt-2 border-t border-gray-200">
           <div>
             <h3 class="text-sm font-semibold text-gray-700">Guardians</h3>

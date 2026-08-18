@@ -1,9 +1,7 @@
 import db from "./pool.js";
 import { attachGuardian } from "./guardians.js";
 
-// Annual membership fee, per the club's rules, not stored in the schema
-// anywhere, so it lives here as the single source of truth for both the
-// club-members display (fee/active status) and payment validation.
+// Annual fee; not in the schema, so this is the single source of truth.
 const MEMBERSHIP_FEES = { Major: 200, Minor: 100 };
 
 export async function getClubMembers() {
@@ -60,9 +58,7 @@ export async function getClubMembersWithLocationsAndTeams() {
       }
       const team = location.Teams[row.TeamID];
 
-      // The LEFT JOIN yields one all-null member row for a team with nobody
-      // currently on it — leave Major/Minor empty rather than build a member
-      // out of nulls.
+      // LEFT JOIN gives an all-null row for an empty team; skip it.
       if (row.MembershipNumber === null) return acc;
 
       const fee = MEMBERSHIP_FEES[row.MemberType];
@@ -88,9 +84,8 @@ export async function getClubMembersWithLocationsAndTeams() {
         Fee: fee,
         CurrentYearPaid: Number(row.CurrentYearPaid),
         IsFullyPaidThisYear: Number(row.CurrentYearPaid) >= fee,
-        // Simplification: previous year's completeness is checked against
-        // this member's *current* Major/Minor fee, since the schema doesn't
-        // track what their status was specifically last year.
+        // Simplification: checks last year's payment against the current
+        // fee, since past status isn't tracked.
         IsActive: Number(row.PreviousYearPaid) >= fee,
       };
 
@@ -219,24 +214,21 @@ export async function addClubMember(data) {
       [membershipNumber],
     );
 
-    // The team assignment is no longer a column on the member — it's the
-    // member's first (open-ended) spell in PlaysFor, starting today.
+    // Team assignment is a PlaysFor spell, not a column on the member.
     await connection.execute(
       "INSERT INTO `PlaysFor` (MembershipNumber, StartDate, TeamID, EndDate) VALUES (?, CURDATE(), ?, NULL)",
       [membershipNumber, data.teamId],
     );
 
     if (isMinor) {
-      // A brand-new member has no BelongsTo row yet, so a newly registered
-      // guardian is located by the branch that owns the team being joined.
+      // New member has no BelongsTo row yet, so use the team's branch.
       const [teamRows] = await connection.execute(
         "SELECT LocationID FROM `Teams` WHERE TeamID = ?",
         [data.teamId],
       );
       const locationId = teamRows[0] ? teamRows[0].LocationID : null;
 
-      // Primary first: attachGuardian demotes any existing primary when it
-      // writes one, and doing the secondary first would be a wasted no-op.
+      // Primary first, so attachGuardian's demote-on-write isn't a no-op.
       await attachGuardian(connection, membershipNumber, locationId, {
         ...guardians[0],
         guardianType: "Primary",
@@ -267,8 +259,7 @@ export async function deleteClubMember(membershipNumber) {
   try {
     await connection.beginTransaction();
 
-    // Whichever subtype table this member is actually in, the other DELETE
-    // is just a harmless no-op.
+    // The other subtype DELETE is a harmless no-op.
     await connection.execute(
       "DELETE FROM `MajorMembers` WHERE MembershipNumber = ?",
       [membershipNumber],
@@ -278,8 +269,7 @@ export async function deleteClubMember(membershipNumber) {
       [membershipNumber],
     );
 
-    // PlaysFor has a FK to ClubMembers, so every spell has to go before the
-    // member row itself can be removed.
+    // PlaysFor's FK means spells must go before the member row.
     await connection.execute(
       "DELETE FROM `PlaysFor` WHERE MembershipNumber = ?",
       [membershipNumber],
@@ -365,8 +355,7 @@ export async function editClubMember(membershipNumber, data) {
       }
     }
 
-    // DateOfBirth may have changed, so recompute Major/Minor and move them
-    // between subtype tables if their status flipped.
+    // Recompute Major/Minor in case DateOfBirth changed their status.
     await connection.execute(
       "DELETE FROM `MajorMembers` WHERE MembershipNumber = ?",
       [membershipNumber],
@@ -393,9 +382,7 @@ export async function editClubMember(membershipNumber, data) {
   }
 }
 
-// --- Payments (kept in this file since it's tightly coupled to club
-// members: uses MEMBERSHIP_FEES above, only ever called from a club
-// member's "Pay" action) ---
+// --- Payments (kept here: uses MEMBERSHIP_FEES, only called from a member's Pay action) ---
 
 export async function addPayment(data) {
   if (!data) {

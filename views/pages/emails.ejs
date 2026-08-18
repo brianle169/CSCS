@@ -73,8 +73,7 @@
           <th class="px-3 py-2 font-medium border-b whitespace-nowrap">Sender (Location)</th>
           <th class="px-3 py-2 font-medium border-b whitespace-nowrap">Receiver</th>
           <th class="px-3 py-2 font-medium border-b">Subject</th>
-          <th class="px-3 py-2 font-medium border-b">Body (first 100 chars)</th>
-          <th class="px-3 py-2 font-medium border-b"></th>
+          <th class="px-3 py-2 font-medium border-b">Snippet</th>
         </tr>
       </thead>
       <tbody>
@@ -85,23 +84,7 @@
           <td class="px-3 py-2 border-b whitespace-nowrap"><%= log.Receiver %></td>
           <td class="px-3 py-2 border-b"><%= log.Subject %></td>
           <td class="px-3 py-2 border-b text-gray-500"><%= log.BodySnippet %></td>
-          <td class="px-3 py-2 border-b whitespace-nowrap">
-            <% if (log.Body) { %>
-            <button type="button" class="email-log-view-toggle text-blue-600 hover:underline text-xs cursor-pointer" data-target="email-log-body-<%= log.LogID %>">
-              View full email
-            </button>
-            <% } else { %>
-            <span class="text-xs text-gray-300">n/a</span>
-            <% } %>
-          </td>
         </tr>
-        <% if (log.Body) { %>
-        <tr id="email-log-body-<%= log.LogID %>" class="hidden">
-          <td colspan="6" class="px-3 pb-3 border-b bg-gray-50">
-            <pre class="whitespace-pre-wrap font-sans text-sm text-gray-800"><%= log.Body %></pre>
-          </td>
-        </tr>
-        <% } %>
         <% }); %>
       </tbody>
     </table>

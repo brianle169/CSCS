@@ -77,15 +77,12 @@ export async function addPersonnel(data) {
     throw new Error("No data provided for adding personnel");
   }
 
-  // Since adding a new personnel implies inserting into Personnel and WorksAt tables,
-  // we need to use a transaction to ensure that if one fails, everything fails, and we could roll back.
+  // Transaction, since this touches both Personnel and WorksAt.
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
 
-    // Check for existing SSN to avoid duplicates.
-    // This is a typical case of re-hiring personnel, so we should allow the same SSN to be added again.
-
+    // Check for existing SSN, so a re-hire reuses it instead of duplicating.
     const [existingPersonnel] = await connection.execute(
       "SELECT PersonnelID FROM `Personnel` WHERE SSN = ?",
       [data.ssn],
@@ -167,8 +164,7 @@ export async function deletePersonnel(personnelId) {
     throw new Error("No personnel ID provided for deletion");
   }
 
-  // Same for deleting personnel, we need to operate on both tables.
-  // We should also use a transaction here to ensure data integrity.
+  // Transaction: deleting touches both tables.
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
@@ -197,10 +193,7 @@ export async function endPersonnelContract(personnelId) {
     throw new Error("No personnel ID provided for ending contract");
   }
   try {
-    // Ends whichever WorksAt assignment is currently active (EndDate IS NULL)
-    // for this personnel, rather than deleting their record — this keeps
-    // their history intact and matches how the schema already tracks
-    // active vs. past assignments.
+    // Ends the active WorksAt row instead of deleting it, to keep history.
     const [results] = await db.execute(
       "UPDATE `WorksAt` SET EndDate = CURDATE() WHERE PersonnelID = ? AND EndDate IS NULL",
       [personnelId],

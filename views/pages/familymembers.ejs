@@ -9,8 +9,7 @@
     page, under each minor member.
   </p>
 
-  <!-- Filters the rows already on the page — no server round-trip, so no
-       action/method. eventListeners.js suppresses the Enter-key submit. -->
+  <!-- Client-side filter, no server round-trip. Enter-key submit is suppressed. -->
   <div id="familymember-filter" class="bg-white rounded-lg shadow p-4 mb-4">
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       <div>
@@ -49,8 +48,7 @@
       </thead>
       <tbody>
         <% familyMembers.forEach(function(member) { %>
-        <!-- The filter matches these data attributes rather than the cell text:
-             empty cells render as "—", which a text search would happily match. -->
+        <!-- Filters match data attributes, not cell text, since empty cells show a dash placeholder. -->
         <tr class="familymember-row border-t border-gray-100" data-name="<%= member.FirstName %> <%= member.LastName %>" data-phone="<%= member.PhoneNumber || '' %>" data-email="<%= member.Email || '' %>">
           <td class="px-3 py-2"><%= member.FirstName %> <%= member.LastName %></td>
           <td class="px-3 py-2 text-gray-500"><%= member.DateOfBirth %></td>

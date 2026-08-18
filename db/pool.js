@@ -1,6 +1,4 @@
-// Shared MySQL connection pool — every db/*.js module imports this same
-// instance, so the app only ever opens one pool (connectionLimit: 10 total),
-// not one pool per module.
+// Shared MySQL pool, imported by every db/*.js module.
 import dotenv from "dotenv";
 import mysql from "mysql2/promise";
 

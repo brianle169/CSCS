@@ -17,10 +17,8 @@ import { getFamilyMembers } from "../db/familyMembers.js";
 
 const clubMembersRoute = express.Router({ mergeParams: true });
 
-// The add-member form carries two guardian slots as flat fields
-// (guardian1FirstName, guardian2SSN, ...). Fold them into the array shape
-// addClubMember expects. A slot with a family member picked is a link to an
-// existing person; otherwise it is a new person to register.
+// Folds the form's flat guardian1*/guardian2* fields into the array
+// addClubMember expects.
 function parseGuardians(body) {
   return [1, 2].map((n) => {
     const f = (name) => body[`guardian${n}${name}`] || "";
@@ -48,8 +46,7 @@ clubMembersRoute
   .get("/", async (req, res) => {
     const data = await getClubMembersWithLocationsAndTeams();
     const teams = await getTeams();
-    // Guardians are keyed by MembershipNumber; familyMembers backs the
-    // "link an existing person" picker in the add-guardian form.
+    // Guardians keyed by MembershipNumber; familyMembers backs the picker.
     const guardians = await getGuardiansByMinor();
     const familyMembers = await getFamilyMembers();
     res.render("pages/clubmembers", {

@@ -1,7 +1,6 @@
 import db from "./pool.js";
 
-// Exported so the assign/edit dropdowns offer exactly the roles the
-// Assignments CHECK constraint accepts, in pitch order.
+// Matches the Assignments CHECK constraint's role list, in pitch order.
 export const ROLE_ORDER = [
   "Goalkeeper",
   "Sweeper",
